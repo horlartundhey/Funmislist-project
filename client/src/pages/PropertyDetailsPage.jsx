@@ -20,7 +20,7 @@ function PropertyDetailsPage() {
         const config = {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         };
-        const res = await axios.get(`http://localhost:5000/api/properties/${id}`, config);
+        const res = await axios.get(`https://funmislist-project.vercel.app/api/properties/${id}`, config);
         setProperty(res.data);
         setLoading(false);
       } catch (error) {
@@ -38,7 +38,7 @@ function PropertyDetailsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`http://localhost:5000/api/properties/${id}/appointment`, appointment, {
+      await axios.post(`https://funmislist-project.vercel.app/api/properties/${id}/appointment`, appointment, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBookingMsg('Appointment booked successfully!');

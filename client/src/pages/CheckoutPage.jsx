@@ -31,7 +31,7 @@ function CheckoutPage() {
     if (payment.success && payment.authorizationUrl) {
       // Decrement stock for each item
       cartItems.forEach(async (item) => {
-        await fetch(`http://localhost:5000/api/products/${item.id}/adjust-stock`, {
+        await fetch(`https://funmislist-project.vercel.app/api/products/${item.id}/adjust-stock`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

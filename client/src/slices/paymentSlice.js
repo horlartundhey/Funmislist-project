@@ -7,7 +7,7 @@ export const initiatePayment = createAsyncThunk(
     try {
       const { token } = getState().user;
       const response = await axios.post(
-        'http://localhost:5000/api/payments/initiate',
+        'https://funmislist-project.vercel.app/api/payments/initiate',
         {
           email: paymentData.userEmail,
           amount: paymentData.total,

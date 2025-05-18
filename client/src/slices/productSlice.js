@@ -5,7 +5,7 @@ export const fetchProducts = createAsyncThunk(
   async ({ category } = {}, { rejectWithValue }) => {
     try {
       // fetch all products then filter by category slug if provided
-      const response = await fetch('http://localhost:5000/api/products');
+      const response = await fetch('https://funmislist-project.vercel.app/api/products');
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.message || 'Failed to fetch products');
@@ -27,7 +27,7 @@ export const fetchProductById = createAsyncThunk(
   'products/fetchProductById',
   async (id, { rejectWithValue }) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/products/${id}`);
+      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${id}`);
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.message || 'Failed to fetch product');
