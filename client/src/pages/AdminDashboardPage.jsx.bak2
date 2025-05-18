@@ -1,0 +1,1712 @@
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import PropertyForm from '../components/PropertyForm';
+import { toast } from 'react-toastify';
+import { FaChartBar, FaBox, FaTags, FaListUl, FaPlus, FaTable, FaTachometerAlt, FaArrowLeft, FaArrowRight, FaUser, FaSignOutAlt } from 'react-icons/fa';        
+import { Line, Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { CategoryScale, LinearScale, PointElement, LineElement, Title } from 'chart.js';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  ArcElement,
+  Tooltip,
+  Legend
+);
+
+// Format currency helper
+const formatCurrency = (amount) => `₦${(amount/100).toLocaleString()}`;
+
+// Format date helper
+const formatDate = (date) => {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+function AdminDashboardPage() {
+  const [activeSection, setActiveSection] = useState('analytics');
+  const [productSubSection, setProductSubSection] = useState('view');
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [properties, setProperties] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [newProduct, setNewProduct] = useState({ 
+    name: '', price: '', category: '', condition: 'new',
+    description: '', stock: '', images: [], 
+    address: '', city: '', state: '', zipCode: ''
+  });
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [viewingProduct, setViewingProduct] = useState(null);
+  const [newCategory, setNewCategory] = useState('');
+  const [newCategoryDesc, setNewCategoryDesc] = useState('');
+  const [newCategoryImage, setNewCategoryImage] = useState(null);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [loadingAddProduct, setLoadingAddProduct] = useState(false);
+  const [loadingEditProduct, setLoadingEditProduct] = useState(false);
+  const [loadingDeleteProduct, setLoadingDeleteProduct] = useState(null);
+  const [loadingPublishToggle, setLoadingPublishToggle] = useState(null);
+  const [loadingAddCategory, setLoadingAddCategory] = useState(false);
+  const [loadingEditCategory, setLoadingEditCategory] = useState(false);
+  const [loadingDeleteCategory, setLoadingDeleteCategory] = useState(null);  const [loadingAddProperty, setLoadingAddProperty] = useState(false);
+  const [loadingEditProperty, setLoadingEditProperty] = useState(false);
+  const [loadingDeleteProperty, setLoadingDeleteProperty] = useState(null);
+  const [errorProducts, setErrorProducts] = useState(null);
+  const [errorTransactions, setErrorTransactions] = useState(null);
+  const [newProperty, setNewProperty] = useState({
+    title: '', description: '', price: '', category: '',
+    images: [], location: { address: '', city: '', state: '', zipCode: '' },
+    availableTimeSlots: []
+  });
+  const [editingProperty, setEditingProperty] = useState(null);  const [viewingProperty, setViewingProperty] = useState(null);
+
+  const { token, userInfo } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  // Handle logout
+  const handleLogout = () => {
+    dispatch({ type: 'user/logout' });
+    navigate('/login');
+    toast.success('Logged out successfully');
+  };
+
+  const fetchProducts = useCallback(async () => {
+    setLoadingProducts(true);
+    setErrorProducts(null);
+    try {
+      const response = await fetch('http://localhost:5000/api/products', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch products');
+      }
+      setProducts(data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setErrorProducts('Failed to fetch products');
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, [token]);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/categories', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }, [token]);
+  const fetchProperties = useCallback(async () => {
+    try {
+      console.log('Fetching properties with token:', token);
+      const res = await fetch('http://localhost:5000/api/properties', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to fetch properties');
+      console.log('Properties fetched:', data);
+      setProperties(data);
+    } catch (err) {
+      console.error('Error fetching properties:', err);
+      toast.error('Error fetching properties');
+    }
+  }, [token]);
+
+  const fetchTransactions = useCallback(async () => {
+    setLoadingTransactions(true);
+    setErrorTransactions(null);
+    try {
+      const res = await fetch('http://localhost:5000/api/payments/transactions', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load transactions');
+      setTransactions(data);
+    } catch (err) {
+      console.error('Error loading transactions:', err);
+      setErrorTransactions(err.message);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  }, [token]);
+
+  // Memoize pagination computation
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return products.slice(startIndex, endIndex);
+  }, [currentPage, itemsPerPage, products]);
+
+  // Calculate total pages
+  const pageCount = Math.ceil(products.length / itemsPerPage);
+
+  // Analytics computations
+  const transactionAnalytics = useMemo(() => {
+    if (!transactions.length) return null;
+
+    // Calculate total revenue from successful transactions
+    const totalRevenue = transactions.reduce((sum, t) => 
+      t.status === 'success' ? sum + t.amount : sum, 0);
+
+    // Calculate transaction status breakdown
+    const statusBreakdown = transactions.reduce((acc, t) => {
+      acc[t.status] = (acc[t.status] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Get recent transactions sorted by date
+    const recentTransactions = [...transactions]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5);
+
+    // Calculate monthly revenue data for line chart
+    const monthlyRevenue = transactions
+      .filter(t => t.status === 'success')
+      .reduce((acc, t) => {
+        const date = new Date(t.createdAt);
+        const monthYear = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+        acc[monthYear] = (acc[monthYear] || 0) + t.amount;
+        return acc;
+      }, {});
+
+    // Prepare chart data
+    const chartData = {
+      labels: Object.keys(monthlyRevenue),
+      datasets: [{
+        label: 'Monthly Revenue',
+        data: Object.values(monthlyRevenue),
+        fill: false,
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.1
+      }]
+    };
+
+    // Prepare pie chart data
+    const pieData = {
+      labels: Object.keys(statusBreakdown),
+      datasets: [{
+        data: Object.values(statusBreakdown),
+        backgroundColor: [
+          'rgb(75, 192, 192)',  // success
+          'rgb(255, 205, 86)', // pending
+          'rgb(255, 99, 132)'  // failed
+        ],
+      }]
+    };
+
+    return {
+      totalRevenue,
+      statusBreakdown,
+      recentTransactions,
+      chartData,
+      pieData
+    };
+  }, [transactions]);
+
+  const handleAddProduct = useCallback(async (e) => {
+    e.preventDefault();
+    setLoadingAddProduct(true);
+    const formData = new FormData();
+    formData.append('name', newProduct.name);
+    formData.append('price', newProduct.price);
+    formData.append('category', newProduct.category);
+    formData.append('condition', newProduct.condition);
+    formData.append('description', newProduct.description);
+    formData.append('stock', newProduct.stock);
+    formData.append('published', 'true'); // Add published field
+    formData.append('address', newProduct.address);
+    formData.append('city', newProduct.city);
+    formData.append('state', newProduct.state);
+    formData.append('zipCode', newProduct.zipCode);
+    
+    Array.from(newProduct.images).forEach(image => {
+      formData.append('images', image);
+    });
+
+    try {
+      const response = await fetch('http://localhost:5000/api/products', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      if (response.status === 403) {
+        toast.error('Forbidden: admin access required to add products');
+        return;
+      }
+      if (response.ok) {
+        fetchProducts();
+        setNewProduct({ 
+          name: '', price: '', category: '', condition: 'new',
+          description: '', stock: '', images: [], 
+          address: '', city: '', state: '', zipCode: ''
+        });
+        toast.success('Product added successfully');
+      } else {
+        toast.error('Error adding product');
+      }
+    } catch (error) {
+      toast.error('Error adding product');
+      console.error('Error adding product:', error);
+    } finally {
+      setLoadingAddProduct(false);
+    }
+  }, [token, newProduct, fetchProducts]);
+
+  const handleEditProduct = useCallback(async (e) => {
+    e.preventDefault();
+    setLoadingEditProduct(true);
+    const formData = new FormData();
+    formData.append('name', editingProduct.name);
+    formData.append('price', editingProduct.price);
+    formData.append('category', editingProduct.category);
+    formData.append('condition', editingProduct.condition);
+    formData.append('description', editingProduct.description);
+    formData.append('stock', editingProduct.stock);
+    formData.append('address', editingProduct.address);
+    formData.append('city', editingProduct.city);
+    formData.append('state', editingProduct.state);
+    formData.append('zipCode', editingProduct.zipCode);
+    
+    if (editingProduct.newImages?.length > 0) {
+      Array.from(editingProduct.newImages).forEach(image => {
+        formData.append('newImages', image);
+      });
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/products/${editingProduct._id}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      if (response.ok) {
+        fetchProducts();
+        setEditingProduct(null);
+        toast.success('Product updated successfully');
+      } else {
+        toast.error('Error updating product');
+      }
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast.error('Error updating product');
+    } finally {
+      setLoadingEditProduct(false);
+    }
+  }, [token, editingProduct, fetchProducts]);
+
+  const handleDeleteProduct = useCallback(async (id) => {
+    setLoadingDeleteProduct(id);
+    try {
+      const response = await fetch(`http://localhost:5000/api/products/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setProducts(prevProducts => prevProducts.filter(product => product._id !== id));
+        toast.success('Product deleted successfully');
+      } else {
+        toast.error('Error deleting product');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast.error('Error deleting product');
+    } finally {
+      setLoadingDeleteProduct(null);
+    }
+  }, [token, setProducts]);
+
+  const handleViewProduct = useCallback((product) => {
+    setViewingProduct(product);
+  }, []);
+
+  const handleAddCategory = useCallback(async (e) => {
+    e.preventDefault();
+    setLoadingAddCategory(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', newCategory);
+      formData.append('description', newCategoryDesc);
+      if (newCategoryImage) {
+        formData.append('image', newCategoryImage);
+      }
+
+      const response = await fetch('http://localhost:5000/api/categories', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      if (response.ok) {
+        fetchCategories();
+        setNewCategory('');
+        setNewCategoryDesc('');
+        setNewCategoryImage(null);
+        toast.success('Category added successfully');
+      } else {
+        toast.error('Error adding category');
+      }
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast.error('Error adding category');
+    } finally {
+      setLoadingAddCategory(false);
+    }
+  }, [token, newCategory, newCategoryDesc, newCategoryImage, fetchCategories]);
+
+  const handleEditCategory = useCallback(async (e) => {
+    e.preventDefault();
+    setLoadingEditCategory(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', editingCategory.name);
+      formData.append('description', editingCategory.description || '');
+      if (editingCategory.newImage) {
+        formData.append('image', editingCategory.newImage);
+      }
+
+      const response = await fetch(`http://localhost:5000/api/categories/${editingCategory._id}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        fetchCategories();
+        setEditingCategory(null);
+        toast.success('Category updated successfully');
+      } else {
+        toast.error('Error updating category');
+      }
+    } catch (error) {
+      console.error('Error updating category:', error);
+      toast.error('Error updating category');
+    } finally {
+      setLoadingEditCategory(false);
+    }
+  }, [token, editingCategory, fetchCategories]);
+
+  const handleDeleteCategory = useCallback(async (id) => {
+    setLoadingDeleteCategory(id);
+    try {
+      const response = await fetch(`http://localhost:5000/api/categories/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        fetchCategories();
+        toast.success('Category deleted successfully');
+      } else {
+        toast.error('Error deleting category');
+      }
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast.error('Error deleting category');
+    } finally {
+      setLoadingDeleteCategory(null);
+    }
+  }, [token, fetchCategories]);
+  // Toggle publish/unpublish for a product
+  const handleTogglePublish = useCallback(async (product) => {
+    setLoadingPublishToggle(product._id);
+    try {
+      const response = await fetch(`http://localhost:5000/api/products/${product._id}/publish`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ published: !product.published })
+      });      if (response.ok) {
+        fetchProducts();
+        toast.success(`Product ${product.published ? 'unpublished' : 'published'} successfully`);
+      } else {
+        toast.error('Error toggling product status');
+      }
+    } catch (error) {
+      console.error('Error toggling product status:', error);
+      toast.error('Error toggling product status');
+    } finally {
+      setLoadingPublishToggle(null);
+    }
+  }, [token, fetchProducts]);
+  const handleAddProperty = useCallback(async (e) => {
+    e.preventDefault();
+    setLoadingAddProperty(true);
+    try {
+      const formData = new FormData();
+      formData.append('title', newProperty.title);
+      formData.append('description', newProperty.description);
+      formData.append('price', newProperty.price);
+      formData.append('category', newProperty.category);
+      formData.append('location', JSON.stringify(newProperty.location));
+      formData.append('availableTimeSlots', JSON.stringify([]));
+      
+      if (newProperty.images?.length > 0) {
+        Array.from(newProperty.images).forEach(image => {
+          formData.append('images', image);
+        });
+      }
+
+      const response = await fetch('http://localhost:5000/api/properties', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        await fetchProperties();
+        setNewProperty({
+          title: '', description: '', price: '', category: '',
+          images: [], location: { address: '', city: '', state: '', zipCode: '' },
+          availableTimeSlots: []
+        });
+        toast.success('Property added successfully');
+      } else {
+        toast.error('Error adding property');
+      }
+    } catch (error) {
+      console.error('Error adding property:', error);
+      toast.error('Error adding property');
+    } finally {
+      setLoadingAddProperty(false);
+    }
+  }, [token, newProperty, fetchProperties]);
+
+  const handleEditProperty = useCallback(async (e) => {
+    e.preventDefault();
+    setLoadingEditProperty(true);
+    try {
+      const formData = new FormData();
+      formData.append('title', editingProperty.title);
+      formData.append('description', editingProperty.description);
+      formData.append('price', editingProperty.price);
+      formData.append('category', editingProperty.category);
+      formData.append('location', JSON.stringify(editingProperty.location));
+      formData.append('availableTimeSlots', editingProperty.availableTimeSlots);
+      
+      if (editingProperty.newImages?.length > 0) {
+        Array.from(editingProperty.newImages).forEach(image => {
+          formData.append('images', image);
+        });
+      }
+
+      const response = await fetch(`http://localhost:5000/api/properties/${editingProperty._id}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        await fetchProperties();
+        setEditingProperty(null);
+        toast.success('Property updated successfully');
+      } else {
+        toast.error('Error updating property');
+      }
+    } catch (error) {
+      console.error('Error updating property:', error);
+      toast.error('Error updating property');
+    } finally {
+      setLoadingEditProperty(false);
+    }
+  }, [token, editingProperty, fetchProperties]);
+
+  const handleDeleteProperty = useCallback(async (id) => {
+    setLoadingDeleteProperty(id);
+    try {
+      const response = await fetch(`http://localhost:5000/api/properties/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setProperties(prevProperties => prevProperties.filter(property => property._id !== id));
+        toast.success('Property deleted successfully');
+      } else {
+        toast.error('Error deleting property');
+      }
+    } catch (error) {
+      console.error('Error deleting property:', error);
+      toast.error('Error deleting property');
+    } finally {
+      setLoadingDeleteProperty(null);
+    }
+  }, [token]);
+
+  const handleViewProperty = useCallback((property) => {
+    setViewingProperty(property);
+  }, []);
+  
+  // Handle add/edit property modal
+  const handlePropertyModal = useCallback((property = null) => {
+    if (property) {
+      // For editing, pre-fill the form
+      setEditingProperty({
+        ...property,
+        availableTimeSlots: JSON.stringify(property.availableTimeSlots || [], null, 2)
+      });
+    } else {
+      // For adding new property, reset the form
+      setEditingProperty(null);
+      setNewProperty({
+        title: '', description: '', price: '', category: '',
+        images: [], location: { address: '', city: '', state: '', zipCode: '' },
+        availableTimeSlots: JSON.stringify([])
+      });
+    }
+  }, []);
+
+  // Initialize data and setup section-specific data fetching
+  useEffect(() => {
+    // Initial data fetch
+    Promise.all([fetchProperties(), fetchCategories()]);
+    
+    // Section-specific data fetching
+    if (activeSection === 'products') {
+      fetchProducts();
+    } else if (activeSection === 'analytics') {
+      fetchTransactions();
+      fetchProducts();
+    }  }, [activeSection, fetchProducts, fetchCategories, fetchProperties, fetchTransactions]);
+  return (
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar Navigation */}      
+      <div className={`${sidebarExpanded ? 'w-64' : 'w-20'} bg-gray-900 text-gray-100 transition-all duration-300 ease-in-out flex flex-col h-screen fixed border-r border-gray-800`}>        
+        <div className="p-4 space-y-4 bg-gray-800">
+          <div className="flex items-center justify-between">
+            {sidebarExpanded && <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Admin Panel</h1>}
+            <button 
+              onClick={() => setSidebarExpanded(!sidebarExpanded)} 
+              className="p-2 rounded-full hover:bg-blue-700 transition-colors"
+            >
+              {sidebarExpanded ? <FaArrowLeft /> : <FaArrowRight />}
+            </button>
+          </div>
+          {userInfo && (
+            <>
+              {sidebarExpanded ? (
+                <div className="flex items-center space-x-2 py-2 px-3 rounded-lg bg-gray-800/80">
+                  <div className="flex items-center flex-1">
+                    <FaUser className="text-blue-400 mr-2" />
+                    <div className="truncate">
+                      <p className="text-sm font-medium text-gray-200">{userInfo.name}</p>
+                      <p className="text-xs text-gray-400">Administrator</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="p-1.5 rounded-full bg-gray-700 hover:bg-red-600 transition-colors"
+                    title="Logout"
+                  >
+                    <FaSignOutAlt className="text-gray-300" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center space-y-2 py-2">
+                  <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center">
+                    <FaUser className="text-blue-400" />
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="p-1.5 rounded-full bg-gray-700 hover:bg-red-600 transition-colors"
+                    title="Logout"
+                  >
+                    <FaSignOutAlt className="text-gray-300" />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        
+        <nav className="flex-1 overflow-y-auto">
+          <ul className="mt-6 space-y-2">
+            <li>
+              <button
+                onClick={() => setActiveSection('analytics')}                className={`flex items-center w-full p-3 ${sidebarExpanded ? 'justify-start' : 'justify-center'} 
+                ${activeSection === 'analytics' ? 'bg-gray-800 border-l-4 border-blue-400' : 'hover:bg-gray-800'} transition-all duration-200 rounded-lg mx-2 my-1`}
+              >
+                <FaChartBar className={`${sidebarExpanded ? 'mr-3' : 'mx-auto'} text-xl`} />
+                {sidebarExpanded && <span>Analytics</span>}
+              </button>
+            </li>
+              <li>
+              <button
+                onClick={() => {
+                  setActiveSection('products');
+                  setProductSubSection('view');
+                }}
+                className={`flex items-center w-full p-3 ${sidebarExpanded ? 'justify-start' : 'justify-center'} 
+                ${activeSection === 'products' && productSubSection === 'view' ? 'bg-gray-800 border-l-4 border-blue-400' : 'hover:bg-gray-800'} transition-all duration-200 rounded-lg mx-2 my-1`}
+              >
+                <FaTable className={`${sidebarExpanded ? 'mr-3' : 'mx-auto'} text-xl`} />
+                {sidebarExpanded && <span>View Products</span>}
+              </button>
+            </li>
+
+            <li>
+              <button
+                onClick={() => {
+                  setActiveSection('products');
+                  setProductSubSection('add');
+                }}
+                className={`flex items-center w-full p-3 ${sidebarExpanded ? 'justify-start' : 'justify-center'} 
+                ${activeSection === 'products' && productSubSection === 'add' ? 'bg-gray-800 border-l-4 border-blue-400' : 'hover:bg-gray-800'} transition-all duration-200 rounded-lg mx-2 my-1`}
+              >
+                <FaPlus className={`${sidebarExpanded ? 'mr-3' : 'mx-auto'} text-xl`} />
+                {sidebarExpanded && <span>Add Product</span>}
+              </button>
+            </li>
+            
+            <li>
+              <button
+                onClick={() => setActiveSection('categories')}
+                className={`flex items-center w-full p-3 ${sidebarExpanded ? 'justify-start' : 'justify-center'} 
+                ${activeSection === 'categories' ? 'bg-blue-700 border-l-4 border-white' : 'hover:bg-blue-700'} transition-all duration-200`}
+              >
+                <FaTags className={`${sidebarExpanded ? 'mr-3' : 'mx-auto'} text-xl`} />
+                {sidebarExpanded && <span>Categories</span>}
+              </button>
+            </li>
+              <li>
+              <button
+                onClick={() => setActiveSection('properties')}
+                className={`flex items-center w-full p-3 ${sidebarExpanded ? 'justify-start' : 'justify-center'} 
+                ${activeSection === 'properties' ? 'bg-gray-800 border-l-4 border-blue-400' : 'hover:bg-gray-800'} transition-all duration-200 rounded-lg mx-2 my-1`}
+              >
+                <FaListUl className={`${sidebarExpanded ? 'mr-3' : 'mx-auto'} text-xl`} />
+                {sidebarExpanded && <span>Properties</span>}
+              </button>
+            </li>
+            
+            {/* Logout Button */}
+            <li className="mt-auto">
+              <button
+                onClick={handleLogout}
+                className={`flex items-center w-full p-3 ${sidebarExpanded ? 'justify-start' : 'justify-center'} 
+                bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all duration-200 rounded-lg mx-2 my-1`}
+              >
+                <FaSignOutAlt className={`${sidebarExpanded ? 'mr-3' : 'mx-auto'} text-xl`} />
+                {sidebarExpanded && <span>Logout</span>}
+              </button>
+            </li>
+          </ul>
+        </nav>      </div>
+      
+      {/* Main Content */}
+      <div className={`flex-1 ${sidebarExpanded ? 'ml-64' : 'ml-20'} transition-all duration-300 ease-in-out`}>
+        <div className="p-6">
+          <h1 className="text-2xl font-bold mb-6 flex items-center">
+            {activeSection === 'analytics' && <FaTachometerAlt className="mr-3 text-blue-600" />}
+            {activeSection === 'products' && (productSubSection === 'view' ? <FaTable className="mr-3 text-blue-600" /> : <FaPlus className="mr-3 text-blue-600" />)}
+            {activeSection === 'categories' && <FaTags className="mr-3 text-blue-600" />}
+            {activeSection === 'properties' && <FaListUl className="mr-3 text-blue-600" />}
+            {activeSection === 'analytics' && 'Dashboard Analytics'}
+            {activeSection === 'products' && (productSubSection === 'view' ? 'View Products' : 'Add New Product')}
+            {activeSection === 'categories' && 'Manage Categories'}
+            {activeSection === 'properties' && 'Manage Properties'}
+          </h1>
+
+          {/* Analytics Section */}
+          {activeSection === 'analytics' && (
+            <section className="space-y-6">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-gray-500 text-sm font-medium">Products Overview</h3>
+                  <p className="text-3xl font-bold text-gray-800">{products.length}</p>
+                  <div className="mt-2 text-xs text-blue-600">
+                    {products.filter(p => p.published).length} Published Products
+                  </div>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-gray-500 text-sm font-medium">Properties Listed</h3>
+                  <p className="text-3xl font-bold text-gray-800">{properties.length}</p>
+                  <div className="mt-2 text-xs text-blue-600">
+                    {categories.length} Active Categories
+                  </div>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-gray-500 text-sm font-medium">Total Revenue</h3>
+                  <p className="text-3xl font-bold text-gray-800">
+                    {formatCurrency(transactionAnalytics?.totalRevenue || 0)}
+                  </p>
+                  <div className="mt-2 text-xs text-blue-600">
+                    {transactions.length} Total Transactions
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Status Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-gray-500 text-sm font-medium">Completed Payments</h3>
+                  <p className="text-3xl font-bold text-green-600">{transactionAnalytics?.statusBreakdown?.success || 0}</p>
+                  <div className="mt-2 text-xs text-green-600">
+                    {transactions.length > 0 ? 
+                      `${((transactionAnalytics?.statusBreakdown?.success || 0) / transactions.length * 100).toFixed(1)}% Success Rate` 
+                      : 'No transactions yet'}
+                  </div>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-gray-500 text-sm font-medium">Pending Payments</h3>
+                  <p className="text-3xl font-bold text-yellow-600">{transactionAnalytics?.statusBreakdown?.pending || 0}</p>
+                  <div className="mt-2 text-xs text-gray-600">Awaiting Completion</div>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-gray-500 text-sm font-medium">Failed Payments</h3>
+                  <p className="text-3xl font-bold text-red-600">{transactionAnalytics?.statusBreakdown?.failed || 0}</p>
+                  <div className="mt-2 text-xs text-gray-600">Unsuccessful Attempts</div>
+                </div>
+              </div>
+
+              {/* Charts Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Payment Status Distribution Chart */}
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-lg font-semibold mb-4">Payment Status Distribution</h3>
+                  <div className="h-[300px] flex items-center justify-center">
+                    {transactionAnalytics?.pieData ? (
+                      <div className="w-full max-w-[300px]">
+                        <Pie data={transactionAnalytics.pieData} options={{ responsive: true }} />
+                      </div>
+                    ) : (
+                      <p className="text-gray-500">No transaction data available</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Monthly Revenue Chart */}
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                  <h3 className="text-lg font-semibold mb-4">Monthly Revenue</h3>
+                  <div className="h-[300px] flex items-center justify-center">
+                    {transactionAnalytics?.chartData ? (
+                      <Line data={transactionAnalytics.chartData} options={{ 
+                        responsive: true,
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            ticks: {
+                              callback: value => formatCurrency(value)
+                            }
+                          }
+                        },
+                        plugins: {
+                          tooltip: {
+                            callbacks: {
+                              label: (context) => formatCurrency(context.raw)
+                            }
+                          }
+                        }
+                      }} />
+                    ) : (
+                      <p className="text-gray-500">No revenue data available</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Recent Transactions Table */}
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 col-span-2">
+                  <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
+                  {loadingTransactions ? (
+                    <div className="flex justify-center p-6">
+                      <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                    </div>
+                  ) : errorTransactions ? (
+                    <div className="p-4 text-red-500">{errorTransactions}</div>
+                  ) : transactions.length === 0 ? (
+                    <p className="text-center text-gray-500 p-4">No transactions found</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 border-b">Reference</th>
+                            <th className="px-4 py-3 border-b">User</th>
+                            <th className="px-4 py-3 border-b">Property</th>
+                            <th className="px-4 py-3 border-b">Amount</th>
+                            <th className="px-4 py-3 border-b">Date</th>
+                            <th className="px-4 py-3 border-b">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {transactionAnalytics?.recentTransactions.map(tx => (
+                            <tr key={tx.reference} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 border-b">{tx.reference}</td>
+                              <td className="px-4 py-3 border-b">{tx.user?.email || tx.user?.name || 'Unknown'}</td>
+                              <td className="px-4 py-3 border-b">{tx.property?.title || 'Unknown'}</td>
+                              <td className="px-4 py-3 border-b">{formatCurrency(tx.amount)}</td>
+                              <td className="px-4 py-3 border-b">{formatDate(tx.createdAt)}</td>
+                              <td className="px-4 py-3 border-b">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                  ${tx.status === 'success' ? 'bg-green-100 text-green-800' : 
+                                    tx.status === 'failed' ? 'bg-red-100 text-red-800' : 
+                                    'bg-yellow-100 text-yellow-800'}`}>
+                                  {tx.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+          
+          {/* Categories Section */}
+          {activeSection === 'categories' && (
+            <section className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="p-6">
+                {/* Add Category Form */}
+                <form onSubmit={handleAddCategory} className="mb-6 space-y-4">
+                  <h3 className="text-lg font-semibold mb-4">Add New Category</h3>
+                  <input
+                    type="text"
+                    placeholder="Category Name"
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    className="p-2 border rounded w-full"
+                    required
+                  />
+                  <textarea
+                    placeholder="Category Description"
+                    value={newCategoryDesc}
+                    onChange={(e) => setNewCategoryDesc(e.target.value)}
+                    className="p-2 border rounded w-full"
+                  />
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-2">Category Image</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setNewCategoryImage(e.target.files[0])}
+                      className="p-2 border rounded w-full"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loadingAddCategory}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50 flex items-center"
+                  >
+                    {loadingAddCategory ? (
+                      <>
+                        <div className="animate-spin h-5 w-5 border-b-2 border-white rounded-full mr-2"></div>
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <FaPlus className="mr-2" />
+                        Add Category
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {/* Categories List */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold mb-4">Categories</h3>
+                  <div className="grid gap-4">
+                    {categories.map((category) => (
+                      <div key={category._id} className="border rounded-lg p-4 flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center">
+                            {category.image && (
+                              <img src={category.image} alt={category.name} className="w-12 h-12 object-cover rounded mr-4" />
+                            )}
+                            <div>
+                              <h4 className="font-semibold">{category.name}</h4>
+                              <p className="text-sm text-gray-600">{category.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">                          <button
+                            onClick={() => setEditingCategory(category)}
+                            className="px-3 py-1 text-yellow-600 hover:text-yellow-700 border border-yellow-600 rounded-md text-sm"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCategory(category._id)}
+                            disabled={loadingDeleteCategory === category._id}
+                            className="px-3 py-1 text-red-500 hover:text-red-600 border border-red-500 rounded-md text-sm"
+                          >
+                            {loadingDeleteCategory === category._id ? (
+                              <div className="animate-spin h-4 w-4 border-b-2 border-red-500 rounded-full"></div>
+                            ) : (
+                              'Delete'
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Edit Category Modal */}
+                {editingCategory && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                      <h3 className="text-lg font-semibold mb-4">Edit Category</h3>
+                      <form onSubmit={handleEditCategory} className="space-y-4">
+                        <input
+                          type="text"
+                          placeholder="Category Name"
+                          value={editingCategory.name}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                          className="p-2 border rounded w-full"
+                          required
+                        />
+                        <textarea
+                          placeholder="Description"
+                          value={editingCategory.description || ''}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                          className="p-2 border rounded w-full"
+                        />
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-2">New Image (optional)</label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setEditingCategory({ ...editingCategory, newImage: e.target.files[0] })}
+                            className="p-2 border rounded w-full"
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-4">
+                          <button
+                            type="button"
+                            onClick={() => setEditingCategory(null)}
+                            className="px-4 py-2 border rounded hover:bg-gray-50"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={loadingEditCategory}
+                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50 flex items-center"
+                          >
+                            {loadingEditCategory ? (
+                              <>
+                                <div className="animate-spin h-5 w-5 border-b-2 border-white rounded-full mr-2"></div>
+                                Saving...
+                              </>
+                            ) : (
+                              'Save Changes'
+                            )}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Products Section */}
+          {activeSection === 'products' && (
+            <section>
+              {productSubSection === 'view' ? (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div className="p-4">
+                    <div className="flex justify-between mb-4">
+                      <div className="flex items-center">
+                        <select 
+                          value={itemsPerPage} 
+                          onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                          className="mr-4 p-2 border rounded"
+                        >
+                          <option value={5}>5 per page</option>
+                          <option value={10}>10 per page</option>
+                          <option value={20}>20 per page</option>
+                        </select>
+                      </div>
+                      <button
+                        onClick={() => setProductSubSection('add')}
+                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors flex items-center"
+                      >
+                        <FaPlus className="mr-2" />
+                        Add New Product
+                      </button>
+                    </div>
+
+                    {loadingProducts ? (
+                      <div className="flex justify-center py-10">
+                        <div className="animate-spin h-10 w-10 border-b-2 border-blue-500 rounded-full"></div>
+                      </div>
+                    ) : errorProducts ? (
+                      <p className="text-red-500 text-center py-10">{errorProducts}</p>
+                    ) : paginatedProducts.length === 0 ? (
+                      <p className="text-center py-10 text-gray-500">No products found</p>
+                    ) : (
+                      <>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-3 border-b text-left">Product</th>
+                                <th className="px-4 py-3 border-b text-left">Category</th>
+                                <th className="px-4 py-3 border-b text-left">Price</th>
+                                <th className="px-4 py-3 border-b text-left">Stock</th>
+                                <th className="px-4 py-3 border-b text-left">Status</th>
+                                <th className="px-4 py-3 border-b text-left">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {paginatedProducts.map((product) => (
+                                <tr key={product._id} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3 border-b">
+                                    <div className="flex items-center">
+                                      {product.images?.[0] && (
+                                        <img 
+                                          src={product.images[0]} 
+                                          alt={product.name} 
+                                          className="w-10 h-10 object-cover rounded mr-3"
+                                        />
+                                      )}
+                                      <div>
+                                        <div className="font-medium">{product.name}</div>
+                                        <div className="text-sm text-gray-500">ID: {product._id}</div>
+                                      </div>
+                                    </div>
+                                  </td>                                  <td className="px-4 py-3 border-b">
+                                    {product.category?.name || 'Unknown'}
+                                  </td>
+                                  <td className="px-4 py-3 border-b">₦{Number(product.price).toLocaleString()}</td>
+                                  <td className="px-4 py-3 border-b">{product.stock || 0}</td>                                  <td className="px-4 py-3 border-b">                                    <button
+                                      onClick={() => handleTogglePublish(product)}
+                                      disabled={loadingPublishToggle === product._id}
+                                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        ${product.published 
+                                          ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                                          : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                                        } transition-colors w-24 justify-center`}
+                                    >
+                                      {loadingPublishToggle === product._id ? (
+                                        <div className="animate-spin h-3 w-3 border-b-2 border-current rounded-full mr-1"></div>
+                                      ) : null}
+                                      <span>{product.published ? 'Published' : 'Draft'}</span>
+                                    </button>
+                                  </td>
+                                  <td className="px-4 py-3 border-b">                                    <div className="flex items-center space-x-3">
+                                      <button
+                                        onClick={() => handleViewProduct(product)}
+                                        className="px-3 py-1 text-blue-500 hover:text-blue-600 border border-blue-500 rounded-md text-sm"
+                                      >
+                                        View
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setEditingProduct(product);
+                                          setProductSubSection('add');
+                                        }}
+                                        className="px-3 py-1 text-yellow-600 hover:text-yellow-700 border border-yellow-600 rounded-md text-sm"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteProduct(product._id)}
+                                        disabled={loadingDeleteProduct === product._id}
+                                        className="px-3 py-1 text-red-500 hover:text-red-600 border border-red-500 rounded-md text-sm"
+                                      >
+                                        {loadingDeleteProduct === product._id ? (
+                                          <div className="animate-spin h-4 w-4 border-b-2 border-red-500 rounded-full"></div>
+                                        ) : (
+                                          'Delete'
+                                        )}
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Pagination */}                        <div className="flex items-center justify-between p-4 border-t">
+                          <div className="text-sm text-gray-700">
+                            Showing <span className="font-medium">{Math.min((currentPage - 1) * itemsPerPage + 1, products.length)}</span> to{' '}
+                            <span className="font-medium">{Math.min(currentPage * itemsPerPage, products.length)}</span> of{' '}
+                            <span className="font-medium">{products.length}</span> products
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                              disabled={currentPage === 1}
+                              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                            >
+                              <FaArrowLeft className="mr-2 h-4 w-4" /> Previous
+                            </button>
+                            <span className="text-sm text-gray-700">
+                              Page <span className="font-medium">{currentPage}</span> of{' '}
+                              <span className="font-medium">{pageCount}</span>
+                            </span>
+                            <button
+                              onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))}
+                              disabled={currentPage >= pageCount}
+                              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                            >
+                              Next <FaArrowRight className="ml-2 h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div className="p-6">
+                    <form onSubmit={editingProduct ? handleEditProduct : handleAddProduct} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          placeholder="Product Name"
+                          value={editingProduct ? editingProduct.name : newProduct.name}
+                          onChange={(e) => editingProduct 
+                            ? setEditingProduct({ ...editingProduct, name: e.target.value })
+                            : setNewProduct({ ...newProduct, name: e.target.value })
+                          }
+                          className="p-2 border rounded w-full"
+                          required
+                        />
+                        <input
+                          type="number"
+                          placeholder="Price"
+                          value={editingProduct ? editingProduct.price : newProduct.price}
+                          onChange={(e) => editingProduct
+                            ? setEditingProduct({ ...editingProduct, price: e.target.value })
+                            : setNewProduct({ ...newProduct, price: e.target.value })
+                          }
+                          className="p-2 border rounded w-full"
+                          required
+                        />
+                      </div>
+
+                      <textarea
+                        placeholder="Description"
+                        value={editingProduct ? editingProduct.description : newProduct.description}
+                        onChange={(e) => editingProduct
+                          ? setEditingProduct({ ...editingProduct, description: e.target.value })
+                          : setNewProduct({ ...newProduct, description: e.target.value })
+                        }
+                        className="p-2 border rounded w-full h-32"
+                        required
+                      />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <select
+                            value={editingProduct ? editingProduct.category : newProduct.category}
+                            onChange={(e) => editingProduct
+                              ? setEditingProduct({ ...editingProduct, category: e.target.value })
+                              : setNewProduct({ ...newProduct, category: e.target.value })
+                            }
+                            className="p-2 border rounded w-full"
+                            required
+                          >
+                            <option value="">Select Category</option>
+                            {categories.map(cat => (
+                              <option key={cat._id} value={cat._id}>{cat.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <select
+                            value={editingProduct ? editingProduct.condition : newProduct.condition}
+                            onChange={(e) => editingProduct
+                              ? setEditingProduct({ ...editingProduct, condition: e.target.value })
+                              : setNewProduct({ ...newProduct, condition: e.target.value })
+                            }
+                            className="p-2 border rounded w-full"
+                            required
+                          >
+                            <option value="new">New</option>
+                            <option value="used">Used</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input
+                          type="number"
+                          placeholder="Stock"
+                          value={editingProduct ? editingProduct.stock : newProduct.stock}
+                          onChange={(e) => editingProduct
+                            ? setEditingProduct({ ...editingProduct, stock: e.target.value })
+                            : setNewProduct({ ...newProduct, stock: e.target.value })
+                          }
+                          className="p-2 border rounded w-full"
+                          required
+                        />
+                        <input
+                          type="text"
+                          placeholder="Address"
+                          value={editingProduct ? editingProduct.address : newProduct.address}
+                          onChange={(e) => editingProduct
+                            ? setEditingProduct({ ...editingProduct, address: e.target.value })
+                            : setNewProduct({ ...newProduct, address: e.target.value })
+                          }
+                          className="p-2 border rounded w-full"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input
+                          type="text"
+                          placeholder="City"
+                          value={editingProduct ? editingProduct.city : newProduct.city}
+                          onChange={(e) => editingProduct
+                            ? setEditingProduct({ ...editingProduct, city: e.target.value })
+                            : setNewProduct({ ...newProduct, city: e.target.value })
+                          }
+                          className="p-2 border rounded w-full"
+                          required
+                        />
+                        <input
+                          type="text"
+                          placeholder="State"
+                          value={editingProduct ? editingProduct.state : newProduct.state}
+                          onChange={(e) => editingProduct
+                            ? setEditingProduct({ ...editingProduct, state: e.target.value })
+                            : setNewProduct({ ...newProduct, state: e.target.value })
+                          }
+                          className="p-2 border rounded w-full"
+                          required
+                        />
+                        <input
+                          type="text"
+                          placeholder="Zip Code"
+                          value={editingProduct ? editingProduct.zipCode : newProduct.zipCode}
+                          onChange={(e) => editingProduct
+                            ? setEditingProduct({ ...editingProduct, zipCode: e.target.value })
+                            : setNewProduct({ ...newProduct, zipCode: e.target.value })
+                          }
+                          className="p-2 border rounded w-full"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-2">
+                          {editingProduct ? 'New Images (optional)' : 'Product Images'}
+                        </label>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={(e) => editingProduct
+                            ? setEditingProduct({ ...editingProduct, newImages: e.target.files })
+                            : setNewProduct({ ...newProduct, images: e.target.files })
+                          }
+                          className="p-2 border rounded w-full"
+                          required={!editingProduct}
+                        />
+                      </div>
+
+                      <div className="flex justify-end space-x-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProductSubSection('view');
+                            setEditingProduct(null);
+                            setNewProduct({
+                              name: '', price: '', category: '', condition: 'new',
+                              description: '', stock: '', images: [],
+                              address: '', city: '', state: '', zipCode: ''
+                            });
+                          }}
+                          className="px-4 py-2 border rounded hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={editingProduct ? loadingEditProduct : loadingAddProduct}
+                          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50 flex items-center"
+                        >
+                          {editingProduct ? (
+                            loadingEditProduct ? (
+                              <>
+                                <div className="animate-spin h-5 w-5 border-b-2 border-white rounded-full mr-2"></div>
+                                Updating...
+                              </>
+                            ) : (
+                              <>
+                                <FaPlus className="mr-2" />
+                                Update Product
+                              </>
+                            )
+                          ) : (
+                            loadingAddProduct ? (
+                              <>
+                                <div className="animate-spin h-5 w-5 border-b-2 border-white rounded-full mr-2"></div>
+                                Adding...
+                              </>
+                            ) : (
+                              <>
+                                <FaPlus className="mr-2" />
+                                Add Product
+                              </>
+                            )
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Properties Section */}
+          {activeSection === 'properties' && (
+            <section>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="p-6">
+                  <div className="flex justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Properties List</h3>
+                    <button
+                      onClick={() => handlePropertyModal()}
+                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors flex items-center"
+                    >
+                      <FaPlus className="mr-2" />
+                      Add New Property
+                    </button>
+                  </div>
+
+                  {properties.length === 0 ? (
+                    <div className="text-center py-10">
+                      <p className="text-gray-500">No properties found</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 border-b text-left">Property</th>
+                            <th className="px-4 py-3 border-b text-left">Category</th>
+                            <th className="px-4 py-3 border-b text-left">Price</th>
+                            <th className="px-4 py-3 border-b text-left">Location</th>
+                            <th className="px-4 py-3 border-b text-left">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {properties.map((property) => (
+                            <tr key={property._id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 border-b">
+                                <div className="flex items-center">
+                                  {property.images?.[0] && (
+                                    <img 
+                                      src={property.images[0]} 
+                                      alt={property.title} 
+                                      className="w-10 h-10 object-cover rounded mr-3"
+                                    />
+                                  )}
+                                  <div>
+                                    <div className="font-medium">{property.title}</div>
+                                    <div className="text-sm text-gray-500">ID: {property._id}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 border-b">
+                                {property.category?.name || 'Unknown'}
+                              </td>
+                              <td className="px-4 py-3 border-b">₦{Number(property.price).toLocaleString()}</td>
+                              <td className="px-4 py-3 border-b">
+                                {property.location.city}, {property.location.state}
+                              </td>
+                              <td className="px-4 py-3 border-b">
+                                <div className="flex items-center space-x-3">
+                                  <button
+                                    onClick={() => handleViewProperty(property)}
+                                    className="px-3 py-1 text-blue-500 hover:text-blue-600 border border-blue-500 rounded-md text-sm"
+                                  >
+                                    View
+                                  </button>
+                                  <button
+                                    onClick={() => handlePropertyModal(property)}
+                                    className="px-3 py-1 text-yellow-600 hover:text-yellow-700 border border-yellow-600 rounded-md text-sm"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteProperty(property._id)}
+                                    className="px-3 py-1 text-red-500 hover:text-red-600 border border-red-500 rounded-md text-sm"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Product Details Dialog */}
+          {viewingProduct && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-semibold">{viewingProduct.name}</h3>                  <button
+                    onClick={() => setViewingProduct(null)}
+                    className="px-3 py-1 text-gray-500 hover:text-gray-600 border border-gray-300 rounded-md text-sm"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Product Images */}
+                  {viewingProduct.images?.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {viewingProduct.images.map((image, index) => (
+                        <img
+                          key={index}
+                          src={image}
+                          alt={`${viewingProduct.name} ${index + 1}`}
+                          className="w-32 h-32 object-cover rounded"
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Product Details */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>                      <h4 className="font-medium text-gray-600">Category</h4>
+                      <p>{viewingProduct.category?.name || 'Unknown'}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-600">Price</h4>
+                      <p>₦{Number(viewingProduct.price).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-600">Condition</h4>
+                      <p className="capitalize">{viewingProduct.condition}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-600">Stock</h4>
+                      <p>{viewingProduct.stock || 0}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-600">Description</h4>
+                    <p className="mt-1 text-gray-700">{viewingProduct.description}</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-600">Location</h4>
+                    <p className="mt-1">
+                      {[
+                        viewingProduct.address,
+                        viewingProduct.city,
+                        viewingProduct.state,
+                        viewingProduct.zipCode
+                      ].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
+
+                  {/* Status and Created At */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium text-gray-600">Status</h4>                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                        ${viewingProduct.published 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                        }`}
+                      >
+                        {viewingProduct.published ? 'Published' : 'Draft'}
+                      </span>
+                    </div>              <div>
+                      <h4 className="font-medium text-gray-600">Created</h4>
+                      <p>{formatDate(viewingProduct.createdAt)}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-4 pt-4 border-t">
+                    <button
+                      onClick={() => setViewingProduct(null)}
+                      className="px-4 py-2 border rounded hover:bg-gray-50"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingProduct(viewingProduct);
+                        setViewingProduct(null);
+                        setProductSubSection('add');
+                      }}
+                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center"
+                    >                      Edit Product
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Property Details Dialog */}
+          {viewingProperty && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-semibold">{viewingProperty.title}</h3>
+                  <button
+                    onClick={() => setViewingProperty(null)}
+                    className="px-3 py-1 text-gray-500 hover:text-gray-600 border border-gray-300 rounded-md text-sm"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Property Images */}
+                  {viewingProperty.images?.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {viewingProperty.images.map((image, index) => (
+                        <img
+                          key={index}
+                          src={image}
+                          alt={`${viewingProperty.title} ${index + 1}`}
+                          className="w-32 h-32 object-cover rounded"
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Property Details */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium text-gray-600">Category</h4>
+                      <p>{viewingProperty.category?.name || 'Unknown'}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-600">Price</h4>
+                      <p>₦{Number(viewingProperty.price).toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-600">Description</h4>
+                    <p className="mt-1 text-gray-700">{viewingProperty.description}</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-600">Location</h4>
+                    <p className="mt-1">
+                      {[
+                        viewingProperty.location.address,
+                        viewingProperty.location.city,
+                        viewingProperty.location.state,
+                        viewingProperty.location.zipCode
+                      ].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
+
+                  {/* Time Slots */}
+                  <div>
+                    <h4 className="font-medium text-gray-600">Available Time Slots</h4>
+                    <div className="mt-1 space-y-1">
+                      {viewingProperty.availableTimeSlots?.map((slot, index) => (
+                        <div key={index} className="text-sm">
+                          {formatDate(slot.date)} - {slot.isBooked ? 'Booked' : 'Available'}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-4 pt-4 border-t">
+                    <button
+                      onClick={() => setViewingProperty(null)}
+                      className="px-4 py-2 border rounded hover:bg-gray-50"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={() => {
+                        handlePropertyModal(viewingProperty);
+                        setViewingProperty(null);
+                      }}
+                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center"
+                    >
+                      Edit Property
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Property Add/Edit Form */}
+          {(editingProperty || activeSection === 'properties') && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-4">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-4">
+                  {editingProperty ? 'Edit Property' : 'Add New Property'}
+                </h3>
+                <PropertyForm
+                  onSubmit={editingProperty ? handleEditProperty : handleAddProperty}
+                  initialData={editingProperty}
+                  categories={categories}
+                  isEditing={!!editingProperty}
+                  isLoading={editingProperty ? loadingEditProperty : loadingAddProperty}                  onCancel={() => handlePropertyModal(null)}
+                />
+              </div>
+            </div>
+          )}        </div>
+      </div>
+    </div>
+  );
+}
+
+export default AdminDashboardPage;

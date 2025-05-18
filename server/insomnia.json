@@ -1,0 +1,171 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-05-02T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.1.0",
+  "resources": [
+    {
+      "_id": "wrk_1",
+      "_type": "workspace",
+      "name": "Funmislist API"
+    },
+    {
+      "_id": "env_1",
+      "_type": "environment",
+      "parentId": "wrk_1",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:5000/api",
+        "auth_token": ""
+      }
+    },
+    {
+      "_id": "req_1",
+      "_type": "request",
+      "parentId": "wrk_1",
+      "name": "Register User",
+      "method": "POST",
+      "url": "{{ base_url }}/auth/register",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"John Doe\",\n  \"email\": \"johndoe@example.com\",\n  \"password\": \"password123\"\n}"
+      }
+    },
+    {
+      "_id": "req_2",
+      "_type": "request",
+      "parentId": "wrk_1",
+      "name": "Login User",
+      "method": "POST",
+      "url": "{{ base_url }}/auth/login",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"johndoe@example.com\",\n  \"password\": \"password123\"\n}"
+      }
+    },
+    {
+      "_id": "req_3",
+      "_type": "request",
+      "parentId": "wrk_1",
+      "name": "List Products",
+      "method": "GET",
+      "url": "{{ base_url }}/products"
+    },
+    {
+      "_id": "req_4",
+      "_type": "request",
+      "parentId": "wrk_1",
+      "name": "Create Product",
+      "method": "POST",
+      "url": "{{ base_url }}/products",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ auth_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          { "name": "name", "value": "Sample Product" },
+          { "name": "description", "value": "This is a sample product." },
+          { "name": "price", "value": "100" },
+          { "name": "category", "value": "category_id" },
+          { "name": "condition", "value": "new" },
+          { "name": "images", "fileName": "image1.jpg" }
+        ]
+      }
+    },
+    {
+      "_id": "req_5",
+      "_type": "request",
+      "parentId": "wrk_1",
+      "name": "List Categories",
+      "method": "GET",
+      "url": "{{ base_url }}/categories"
+    },
+    {
+      "_id": "req_6",
+      "_type": "request",
+      "parentId": "wrk_1",
+      "name": "Create Category",
+      "method": "POST",
+      "url": "{{ base_url }}/categories",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ auth_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Electronics\",\n  \"description\": \"Devices and gadgets\"\n}"
+      }
+    },
+    {
+      "_id": "req_7",
+      "_type": "request",
+      "parentId": "wrk_1",
+      "name": "List Properties",
+      "method": "GET",
+      "url": "{{ base_url }}/properties"
+    },
+    {
+      "_id": "req_8",
+      "_type": "request",
+      "parentId": "wrk_1",
+      "name": "Create Property",
+      "method": "POST",
+      "url": "{{ base_url }}/properties",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ auth_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          { "name": "title", "value": "Luxury Apartment" },
+          { "name": "description", "value": "A beautiful luxury apartment." },
+          { "name": "price", "value": "500000" },
+          { "name": "location", "value": "Downtown" },
+          { "name": "availableTimeSlots", "value": "[{\\\"date\\\":\\\"2025-05-10T10:00:00.000Z\\\"}]" },
+          { "name": "images", "fileName": "image1.jpg" }
+        ]
+      }
+    },
+    {
+      "_id": "req_9",
+      "_type": "request",
+      "parentId": "wrk_1",
+      "name": "Initiate Payment",
+      "method": "POST",
+      "url": "{{ base_url }}/payments/initiate",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ auth_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"user@example.com\",\n  \"amount\": 5000\n}"
+      }
+    },
+    {
+      "_id": "req_10",
+      "_type": "request",
+      "parentId": "wrk_1",
+      "name": "Verify Payment",
+      "method": "GET",
+      "url": "{{ base_url }}/payments/verify?reference=transaction_reference",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ auth_token }}"
+        }
+      ]
+    }
+  ]
+}

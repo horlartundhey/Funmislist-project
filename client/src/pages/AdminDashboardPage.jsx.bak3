@@ -1,0 +1,36 @@
+import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+
+function AdminDashboardPage() {
+  const { userInfo } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  const handleLogout = () => {
+    dispatch({ type: 'user/logout' });
+    navigate('/login');
+  };
+  
+  return (
+    <div className="flex h-screen bg-gray-100">
+      <div className="w-64 bg-gray-900 text-white p-4">
+        <h1 className="text-xl font-bold mb-6">Admin Panel</h1>
+        {userInfo && (
+          <div className="mb-4">
+            <p>Welcome, {userInfo.name}</p>
+            <button onClick={handleLogout} className="mt-2 px-4 py-2 bg-red-600 text-white rounded">
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="flex-1 p-8">
+        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+        <p>Your admin dashboard content will appear here.</p>
+      </div>
+    </div>
+  );
+}
+
+export default AdminDashboardPage;
