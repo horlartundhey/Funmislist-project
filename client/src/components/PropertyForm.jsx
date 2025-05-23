@@ -20,7 +20,8 @@ function PropertyForm({
     zipCode: '',
     images: [],
     availableTimeSlots: [],
-    category: ''
+    category: '',
+    subcategory: ''
   });
   
   const [newTimeSlot, setNewTimeSlot] = useState({
@@ -40,7 +41,8 @@ function PropertyForm({
         zipCode: initialData.location?.zipCode || '',
         images: [], // Images cannot be prefilled
         availableTimeSlots: initialData.availableTimeSlots || [],
-        category: initialData.category || ''
+        category: initialData.category || '',
+        subcategory: initialData.subcategory || ''
       });
     }
   }, [initialData]);
@@ -51,6 +53,8 @@ function PropertyForm({
       setForm((prev) => ({ ...prev, images: files }));
     } else if (name === 'newSlotDate' || name === 'newSlotTime') {
       setNewTimeSlot(prev => ({ ...prev, [name === 'newSlotDate' ? 'date' : 'time']: value }));
+    } else if (name === 'category') {
+      setForm((prev) => ({ ...prev, category: value, subcategory: '' }));
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
     }
@@ -99,7 +103,8 @@ function PropertyForm({
       availableTimeSlots: form.availableTimeSlots.map(slot => ({
         date: slot.date,
         isBooked: slot.isBooked || false
-      }))
+      })),
+      subcategory: form.subcategory
     });
   };
 
@@ -143,6 +148,21 @@ function PropertyForm({
           <option key={cat._id} value={cat._id}>{cat.name}</option>
         ))}
       </select>
+      {/* Subcategory Dropdown */}
+      {form.category && (
+        <select
+          name="subcategory"
+          value={form.subcategory || ''}
+          onChange={handleChange}
+          className="p-2 border rounded w-full mt-2"
+          required
+        >
+          <option value="">Select Subcategory</option>
+          {(categories.find(c => c._id === form.category)?.subcategories || []).map((sub, idx) => (
+            <option key={idx} value={sub.name}>{sub.name}</option>
+          ))}
+        </select>
+      )}
 
       {/* Location Inputs */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">

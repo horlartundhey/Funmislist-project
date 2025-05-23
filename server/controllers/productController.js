@@ -5,16 +5,15 @@ const Category = require('../models/Category');
 
 // Get all products with optional category filter
 const getProducts = async (req, res) => {
-  try {    const { category } = req.query;
+  try {
+    const { category, subcategory } = req.query;
     // Only filter by published for non-admin users
     let query = {};
-    
     // Check if request is from admin or public
     if (!req.headers.authorization) {
       // Public request - only published products
       query.published = true;
     }
-    
     if (category) {
       if (mongoose.Types.ObjectId.isValid(category)) {
         query.category = new mongoose.Types.ObjectId(category);
@@ -33,7 +32,9 @@ const getProducts = async (req, res) => {
       }
       console.log('Filtering by category param:', category); // Debug log
     }
-    
+    if (subcategory) {
+      query.subcategory = subcategory;
+    }
     console.log('Query:', query); // Debug log
     const products = await Product.find(query).populate('category');
     res.status(200).json(products);
@@ -61,7 +62,7 @@ const getProductById = async (req, res) => {
 
 // Create a new product
 const createProduct = async (req, res) => {
-  const { name, description, price, category, condition, stock, address, city, state, zipCode } = req.body;
+  const { name, description, price, category, subcategory, condition, stock, address, city, state, zipCode } = req.body;
 
   try {
     // Upload images to Cloudinary
@@ -78,6 +79,7 @@ const createProduct = async (req, res) => {
       description,
       price,
       category,
+      subcategory,
       condition,
       stock,
       images: imageUrls,
@@ -96,7 +98,7 @@ const createProduct = async (req, res) => {
 // Update a product
 const updateProduct = async (req, res) => {
   const { id } = req.params;
-  const { name, description, price, category, condition, stock, address, city, state, zipCode } = req.body;
+  const { name, description, price, category, subcategory, condition, stock, address, city, state, zipCode } = req.body;
 
   try {
     const product = await Product.findById(id);
@@ -110,6 +112,7 @@ const updateProduct = async (req, res) => {
     product.description = description || product.description;
     product.price = price || product.price;
     product.category = category || product.category;
+    product.subcategory = subcategory || product.subcategory;
     product.condition = condition || product.condition;
     product.stock = (typeof stock !== 'undefined') ? stock : product.stock;
     // Update location

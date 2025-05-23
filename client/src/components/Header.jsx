@@ -9,6 +9,7 @@ function Header() {
   const dispatch = useDispatch();
   const { userInfo } = useSelector((state) => state.user);
   const cartCount = useSelector((state) => state.cart.cartItems.reduce((sum, item) => sum + item.quantity, 0));
+  const { categories } = useSelector((state) => state.categories);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === '/';
@@ -26,10 +27,41 @@ function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex space-x-8">
+        <nav className="hidden lg:flex space-x-8 items-center">
           <Link to="/shop" className={`transition ${isHome ? 'text-white hover:text-red-400' : 'text-gray-800 hover:text-red-500'}`}>Shop</Link>
           <Link to="/properties" className={`transition ${isHome ? 'text-white hover:text-red-400' : 'text-gray-800 hover:text-red-500'}`}>Properties</Link>
-          <Link to="/category" className={`transition ${isHome ? 'text-white hover:text-red-400' : 'text-gray-800 hover:text-red-500'}`}>Categories</Link>
+          {/* Category dropdowns */}
+          <div className="relative group">
+            <button className={`transition flex items-center gap-1 ${isHome ? 'text-white hover:text-red-400' : 'text-gray-800 hover:text-red-500'}`}>Categories <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg></button>
+            <div className="absolute left-0 mt-2 w-56 bg-white text-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-opacity z-50">
+              {categories && categories.length > 0 ? (
+                <ul>
+                  {categories.map((cat) => (
+                    <li key={cat._id} className="border-b last:border-b-0">
+                      <Link to={`/category/${cat.name.toLowerCase().replace(/\s+/g, '-')}`}
+                        className="block px-4 py-2 hover:bg-gray-100 font-semibold">
+                        {cat.name}
+                      </Link>
+                      {cat.subcategories && cat.subcategories.length > 0 && (
+                        <ul className="pl-4 bg-gray-50">
+                          {cat.subcategories.map((sub, idx) => (
+                            <li key={idx}>
+                              <Link to={`/category/${cat.name.toLowerCase().replace(/\s+/g, '-')}/${sub.name.toLowerCase().replace(/\s+/g, '-')}`}
+                                className="block px-4 py-2 text-sm hover:bg-gray-200">
+                                {sub.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="px-4 py-2 text-gray-400">No categories</div>
+              )}
+            </div>
+          </div>
         </nav>
 
         {/* Action Buttons */}
@@ -67,7 +99,38 @@ function Header() {
           <nav className="flex flex-col px-6 py-4 space-y-3">
             <Link to="/shop" onClick={() => setMobileOpen(false)} className="text-gray-800 hover:text-red-500">Shop</Link>
             <Link to="/properties" onClick={() => setMobileOpen(false)} className="text-gray-800 hover:text-red-500">Properties</Link>
-            <Link to="/category" onClick={() => setMobileOpen(false)} className="text-gray-800 hover:text-red-500">Categories</Link>
+            {/* Mobile categories with subcategories */}
+            <div>
+              <span className="block text-gray-800 font-semibold mb-1">Categories</span>
+              {categories && categories.length > 0 ? (
+                <ul>
+                  {categories.map((cat) => (
+                    <li key={cat._id}>
+                      <Link to={`/category/${cat.name.toLowerCase().replace(/\s+/g, '-')}`}
+                        onClick={() => setMobileOpen(false)}
+                        className="block px-2 py-1 hover:bg-gray-100 rounded">
+                        {cat.name}
+                      </Link>
+                      {cat.subcategories && cat.subcategories.length > 0 && (
+                        <ul className="pl-4">
+                          {cat.subcategories.map((sub, idx) => (
+                            <li key={idx}>
+                              <Link to={`/category/${cat.name.toLowerCase().replace(/\s+/g, '-')}/${sub.name.toLowerCase().replace(/\s+/g, '-')}`}
+                                onClick={() => setMobileOpen(false)}
+                                className="block px-2 py-1 text-sm hover:bg-gray-200 rounded">
+                                {sub.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="px-2 py-1 text-gray-400">No categories</div>
+              )}
+            </div>
             { userInfo ? (
               <>
                 <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="text-gray-800 hover:text-red-500">{userInfo.name}</Link>

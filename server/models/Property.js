@@ -53,6 +53,10 @@ const propertySchema = new mongoose.Schema({
     ref: 'Category',
     required: true,
   },
+  subcategory: {
+    type: String, // store subcategory name for simplicity
+    required: false,
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import SearchAndFilter from '../components/home/SearchAndFilter';
+import PropertySearchAndFilter from '../components/home/PropertySearchAndFilter';
 import { fetchProperties } from '../slices/propertySlice';
 import formatCurrency from '../utils/formatCurrency';
 
@@ -18,12 +18,13 @@ function PropertyPage() {
     setFilteredProps(properties);
   }, [properties]);
 
-  const handleSearch = ({ searchTerm, category, priceRange, location }) => {
+  const handleSearch = ({ searchTerm, category, subcategory, priceRange, location }) => {
     let temp = properties;
     if (searchTerm) temp = temp.filter(p => p.title.toLowerCase().includes(searchTerm.toLowerCase()));
     if (priceRange.min) temp = temp.filter(p => p.price >= +priceRange.min);
     if (priceRange.max) temp = temp.filter(p => p.price <= +priceRange.max);
     if (category) temp = temp.filter(p => p.category?._id === category);
+    if (subcategory) temp = temp.filter(p => p.subcategory === subcategory);
     if (location) {
       const loc = location.toLowerCase();
       temp = temp.filter(p =>
@@ -43,11 +44,10 @@ function PropertyPage() {
       <div className="mb-8 bg-red-50 rounded-lg p-6 text-center">
         <h1 className="text-3xl font-bold">All Properties</h1>
         <p className="mt-2 text-gray-600">Explore our property listings</p>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      </div>      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar filters */}
         <aside>
-          <SearchAndFilter onSearch={handleSearch} />
+          <PropertySearchAndFilter onSearch={handleSearch} />
         </aside>
         {/* Property cards grid */}
         <section className="lg:col-span-3">

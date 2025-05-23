@@ -20,8 +20,7 @@ ChartJS.register(
   Legend
 );
 
-// Format currency helper
-const formatCurrency = (amount) => `₦${(amount/100).toLocaleString()}`;
+import formatCurrency from '../utils/formatCurrency'; // Use shared currency formatter
 
 // Format date helper
 const formatDate = (date) => {
@@ -42,17 +41,18 @@ function AdminDashboardPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [properties, setProperties] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [newProduct, setNewProduct] = useState({ 
+  const [transactions, setTransactions] = useState([]);  const [newProduct, setNewProduct] = useState({ 
     name: '', price: '', category: '', condition: 'new',
     description: '', stock: '', images: [], 
     address: '', city: '', state: '', zipCode: ''
   });
   const [editingProduct, setEditingProduct] = useState(null);
-  const [viewingProduct, setViewingProduct] = useState(null);
-  const [newCategory, setNewCategory] = useState('');
-  const [newCategoryDesc, setNewCategoryDesc] = useState('');
-  const [newCategoryImage, setNewCategoryImage] = useState(null);
+  const [viewingProduct, setViewingProduct] = useState(null);  const [newCategory, setNewCategory] = useState({ 
+    name: '', 
+    description: '', 
+    subcategories: [],
+    image: null 
+  });
   const [editingCategory, setEditingCategory] = useState(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
@@ -83,7 +83,7 @@ function AdminDashboardPage() {
     setLoadingProducts(true);
     setErrorProducts(null);
     try {
-      const response = await fetch('https://funmislist-project.vercel.app/api/products', {
+      const response = await fetch('http://localhost:5000/api/products', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -101,7 +101,7 @@ function AdminDashboardPage() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await fetch('https://funmislist-project.vercel.app/api/categories', {
+      const response = await fetch('http://localhost:5000/api/categories', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -113,7 +113,7 @@ function AdminDashboardPage() {
   const fetchProperties = useCallback(async () => {
     try {
       console.log('Fetching properties with token:', token);
-      const res = await fetch('https://funmislist-project.vercel.app/api/properties', {
+      const res = await fetch('http://localhost:5000/api/properties', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -130,7 +130,7 @@ function AdminDashboardPage() {
     setLoadingTransactions(true);
     setErrorTransactions(null);
     try {
-      const res = await fetch('https://funmislist-project.vercel.app/api/payments/transactions', {
+      const res = await fetch('http://localhost:5000/api/payments/transactions', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -238,7 +238,7 @@ function AdminDashboardPage() {
     });
 
     try {
-      const response = await fetch('https://funmislist-project.vercel.app/api/products', {
+      const response = await fetch('http://localhost:5000/api/products', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -290,7 +290,7 @@ function AdminDashboardPage() {
     }
 
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${editingProduct._id}`, {
+      const response = await fetch(`http://localhost:5000/api/products/${editingProduct._id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -315,7 +315,7 @@ function AdminDashboardPage() {
   const handleDeleteProduct = useCallback(async (id) => {
     setLoadingDeleteProduct(id);
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${id}`, {
+      const response = await fetch(`http://localhost:5000/api/products/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -339,20 +339,22 @@ function AdminDashboardPage() {
 
   const handleViewProduct = useCallback((product) => {
     setViewingProduct(product);
-  }, []);
-
-  const handleAddCategory = useCallback(async (e) => {
+  }, []);  const handleAddCategory = useCallback(async (e) => {
     e.preventDefault();
     setLoadingAddCategory(true);
     try {
+      // Validate subcategories - filter out empty ones
+      const validSubcategories = (newCategory.subcategories || []).filter(sub => sub.name.trim());
+
       const formData = new FormData();
-      formData.append('name', newCategory);
-      formData.append('description', newCategoryDesc);
-      if (newCategoryImage) {
-        formData.append('image', newCategoryImage);
+      formData.append('name', newCategory.name);
+      formData.append('description', newCategory.description);
+      formData.append('subcategories', JSON.stringify(validSubcategories));
+      if (newCategory.image) {
+        formData.append('image', newCategory.image);
       }
 
-      const response = await fetch('https://funmislist-project.vercel.app/api/categories', {
+      const response = await fetch('http://localhost:5000/api/categories', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -362,9 +364,12 @@ function AdminDashboardPage() {
       
       if (response.ok) {
         fetchCategories();
-        setNewCategory('');
-        setNewCategoryDesc('');
-        setNewCategoryImage(null);
+        setNewCategory({ 
+          name: '', 
+          description: '', 
+          subcategories: [],
+          image: null 
+        });
         toast.success('Category added successfully');
       } else {
         toast.error('Error adding category');
@@ -375,20 +380,22 @@ function AdminDashboardPage() {
     } finally {
       setLoadingAddCategory(false);
     }
-  }, [token, newCategory, newCategoryDesc, newCategoryImage, fetchCategories]);
-
-  const handleEditCategory = useCallback(async (e) => {
+  }, [token, newCategory, fetchCategories]);  const handleEditCategory = useCallback(async (e) => {
     e.preventDefault();
     setLoadingEditCategory(true);
     try {
+      // Validate subcategories - filter out empty ones
+      const validSubcategories = (editingCategory.subcategories || []).filter(sub => sub.name.trim());
+
       const formData = new FormData();
       formData.append('name', editingCategory.name);
       formData.append('description', editingCategory.description || '');
+      formData.append('subcategories', JSON.stringify(validSubcategories));
       if (editingCategory.newImage) {
         formData.append('image', editingCategory.newImage);
       }
 
-      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${editingCategory._id}`, {
+      const response = await fetch(`http://localhost:5000/api/categories/${editingCategory._id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -414,7 +421,7 @@ function AdminDashboardPage() {
   const handleDeleteCategory = useCallback(async (id) => {
     setLoadingDeleteCategory(id);
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${id}`, {
+      const response = await fetch(`http://localhost:5000/api/categories/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -438,7 +445,7 @@ function AdminDashboardPage() {
   const handleTogglePublish = useCallback(async (product) => {
     setLoadingPublishToggle(product._id);
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${product._id}/publish`, {
+      const response = await fetch(`http://localhost:5000/api/products/${product._id}/publish`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -462,7 +469,7 @@ function AdminDashboardPage() {
   const handleTogglePropertyPublish = async (property) => {
     try {
       setLoadingPublishToggle(property._id);
-      const response = await fetch(`https://funmislist-project.vercel.app/api/properties/${property._id}/publish`, {
+      const response = await fetch(`http://localhost:5000/api/properties/${property._id}/publish`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       });
@@ -504,7 +511,7 @@ function AdminDashboardPage() {
           formData.append('images', image);
         });
       }
-      const response = await fetch('https://funmislist-project.vercel.app/api/properties', {
+      const response = await fetch('http://localhost:5000/api/properties', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -548,7 +555,7 @@ function AdminDashboardPage() {
         });
       }
 
-      const response = await fetch(`https://funmislist-project.vercel.app/api/properties/${editingProperty._id}`, {
+      const response = await fetch(`http://localhost:5000/api/properties/${editingProperty._id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -574,7 +581,7 @@ function AdminDashboardPage() {
   const handleDeleteProperty = useCallback(async (id) => {
     setLoadingDeleteProperty(id);
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/properties/${id}`, {
+      const response = await fetch(`http://localhost:5000/api/properties/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -904,21 +911,20 @@ function AdminDashboardPage() {
           {activeSection === 'categories' && (
             <section className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="p-6">
-                {/* Add Category Form */}
-                <form onSubmit={handleAddCategory} className="mb-6 space-y-4">
+                {/* Add Category Form */}                <form onSubmit={handleAddCategory} className="mb-6 space-y-4">
                   <h3 className="text-lg font-semibold mb-4">Add New Category</h3>
                   <input
                     type="text"
                     placeholder="Category Name"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
+                    value={newCategory.name}
+                    onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
                     className="p-2 border rounded w-full"
                     required
                   />
                   <textarea
                     placeholder="Category Description"
-                    value={newCategoryDesc}
-                    onChange={(e) => setNewCategoryDesc(e.target.value)}
+                    value={newCategory.description}
+                    onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
                     className="p-2 border rounded w-full"
                   />
                   <div>
@@ -926,9 +932,62 @@ function AdminDashboardPage() {
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setNewCategoryImage(e.target.files[0])}
+                      onChange={(e) => setNewCategory({...newCategory, image: e.target.files[0]})}
                       className="p-2 border rounded w-full"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-2">Subcategories</label>
+                    <div className="space-y-2">
+                      {(newCategory.subcategories || []).map((sub, idx) => (
+                        <div key={idx} className="flex space-x-2">
+                          <input
+                            type="text"
+                            placeholder="Subcategory Name"
+                            value={sub.name}
+                            onChange={(e) => {
+                              const updatedSubs = [...newCategory.subcategories];
+                              updatedSubs[idx] = { ...sub, name: e.target.value };
+                              setNewCategory({...newCategory, subcategories: updatedSubs});
+                            }}
+                            className="p-2 border rounded flex-1"
+                            required
+                          />
+                          <input
+                            type="text"
+                            placeholder="Description (optional)"
+                            value={sub.description || ''}
+                            onChange={(e) => {
+                              const updatedSubs = [...newCategory.subcategories];
+                              updatedSubs[idx] = { ...sub, description: e.target.value };
+                              setNewCategory({...newCategory, subcategories: updatedSubs});
+                            }}
+                            className="p-2 border rounded flex-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updatedSubs = [...newCategory.subcategories];
+                              updatedSubs.splice(idx, 1);
+                              setNewCategory({...newCategory, subcategories: updatedSubs});
+                            }}
+                            className="p-2 text-red-500 hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNewCategory({
+                        ...newCategory,
+                        subcategories: [...(newCategory.subcategories || []), { name: '', description: '' }]
+                      })}
+                      className="mt-2 text-blue-500 hover:text-blue-700"
+                    >
+                      + Add Subcategory
+                    </button>
                   </div>
                   <button
                     type="submit"
@@ -953,10 +1012,9 @@ function AdminDashboardPage() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold mb-4">Categories</h3>
                   <div className="grid gap-4">
-                    {categories.map((category) => (
-                      <div key={category._id} className="border rounded-lg p-4 flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center">
+                    {categories.map((category) => (                      <div key={category._id} className="border rounded-lg p-4 flex justify-between items-start">
+                        <div className="flex-grow">
+                          <div className="flex items-center mb-2">
                             {category.image && (
                               <img src={category.image} alt={category.name} className="w-12 h-12 object-cover rounded mr-4" />
                             )}
@@ -965,6 +1023,18 @@ function AdminDashboardPage() {
                               <p className="text-sm text-gray-600">{category.description}</p>
                             </div>
                           </div>
+                          {category.subcategories && category.subcategories.length > 0 && (
+                            <div className="mt-3 pl-16">
+                              <p className="text-sm font-medium text-gray-700 mb-1">Subcategories:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {category.subcategories.map((sub, idx) => (
+                                  <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    {sub.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div className="flex space-x-2">                          <button
                             onClick={() => setEditingCategory(category)}
@@ -993,8 +1063,7 @@ function AdminDashboardPage() {
                 {editingCategory && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                      <h3 className="text-lg font-semibold mb-4">Edit Category</h3>
-                      <form onSubmit={handleEditCategory} className="space-y-4">
+                      <h3 className="text-lg font-semibold mb-4">Edit Category</h3>                      <form onSubmit={handleEditCategory} className="space-y-4">
                         <input
                           type="text"
                           placeholder="Category Name"
@@ -1017,6 +1086,59 @@ function AdminDashboardPage() {
                             onChange={(e) => setEditingCategory({ ...editingCategory, newImage: e.target.files[0] })}
                             className="p-2 border rounded w-full"
                           />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-2">Subcategories</label>
+                          <div className="space-y-2">
+                            {(editingCategory.subcategories || []).map((sub, idx) => (
+                              <div key={idx} className="flex space-x-2">
+                                <input
+                                  type="text"
+                                  placeholder="Subcategory Name"
+                                  value={sub.name}
+                                  onChange={(e) => {
+                                    const updatedSubs = [...editingCategory.subcategories];
+                                    updatedSubs[idx] = { ...sub, name: e.target.value };
+                                    setEditingCategory({...editingCategory, subcategories: updatedSubs});
+                                  }}
+                                  className="p-2 border rounded flex-1"
+                                  required
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Description (optional)"
+                                  value={sub.description || ''}
+                                  onChange={(e) => {
+                                    const updatedSubs = [...editingCategory.subcategories];
+                                    updatedSubs[idx] = { ...sub, description: e.target.value };
+                                    setEditingCategory({...editingCategory, subcategories: updatedSubs});
+                                  }}
+                                  className="p-2 border rounded flex-1"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updatedSubs = [...editingCategory.subcategories];
+                                    updatedSubs.splice(idx, 1);
+                                    setEditingCategory({...editingCategory, subcategories: updatedSubs});
+                                  }}
+                                  className="p-2 text-red-500 hover:text-red-700"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setEditingCategory({
+                              ...editingCategory,
+                              subcategories: [...(editingCategory.subcategories || []), { name: '', description: '' }]
+                            })}
+                            className="mt-2 text-blue-500 hover:text-blue-700"
+                          >
+                            + Add Subcategory
+                          </button>
                         </div>
                         <div className="flex justify-end space-x-4">
                           <button
@@ -1118,7 +1240,7 @@ function AdminDashboardPage() {
                                   </td>                                  <td className="px-4 py-3 border-b">
                                     {product.category?.name || 'Unknown'}
                                   </td>
-                                  <td className="px-4 py-3 border-b">{formatCurrency(product.price)}</td>
+                                  <td className="px-4 py-3 border-b">{formatCurrency(Number(product.price))}</td>
                                   <td className="px-4 py-3 border-b">{product.stock || 0}</td>                                  <td className="px-4 py-3 border-b">                                    <button
                                       onClick={() => handleTogglePublish(product)}
                                       disabled={loadingPublishToggle === product._id}
@@ -1244,10 +1366,14 @@ function AdminDashboardPage() {
                         <div>
                           <select
                             value={editingProduct ? editingProduct.category : newProduct.category}
-                            onChange={(e) => editingProduct
-                              ? setEditingProduct({ ...editingProduct, category: e.target.value })
-                              : setNewProduct({ ...newProduct, category: e.target.value })
-                            }
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (editingProduct) {
+                                setEditingProduct({ ...editingProduct, category: value, subcategory: '' });
+                              } else {
+                                setNewProduct({ ...newProduct, category: value, subcategory: '' });
+                              }
+                            }}
                             className="p-2 border rounded w-full"
                             required
                           >
@@ -1257,9 +1383,10 @@ function AdminDashboardPage() {
                             ))}
                           </select>
                         </div>
+                        {/* Condition Dropdown */}
                         <div>
                           <select
-                            value={editingProduct ? editingProduct.condition : newProduct.condition}
+                            value={editingProduct ? editingProduct.condition || 'new' : newProduct.condition || 'new'}
                             onChange={(e) => editingProduct
                               ? setEditingProduct({ ...editingProduct, condition: e.target.value })
                               : setNewProduct({ ...newProduct, condition: e.target.value })
@@ -1268,7 +1395,7 @@ function AdminDashboardPage() {
                             required
                           >
                             <option value="new">New</option>
-                            <option value="used">Used</option>
+                            <option value="used">Pre-owned</option>
                           </select>
                         </div>
                       </div>

@@ -18,6 +18,10 @@ const productSchema = new mongoose.Schema({
     ref: 'Category',
     required: true,
   },
+  subcategory: {
+    type: String, // store subcategory name for simplicity
+    required: false,
+  },
   condition: {
     type: String,
     enum: ['new', 'used'],

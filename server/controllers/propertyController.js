@@ -16,6 +16,9 @@ const getProperties = async (req, res) => {
         filter.category = req.query.category;
       }
     }
+    if (req.query.subcategory) {
+      filter.subcategory = req.query.subcategory;
+    }
     
     console.log('Querying properties with filter:', filter); // Debug log
     
@@ -42,7 +45,8 @@ const createProperty = async (req, res) => {
       price,
       location,
       availableTimeSlots,
-      category
+      category,
+      subcategory
     } = req.body;
 
     const imageUrls = req.files.map((file) => file.path);
@@ -66,6 +70,7 @@ const createProperty = async (req, res) => {
       images: imageUrls,
       availableTimeSlots: parsedSlots,
       category: categoryId,
+      subcategory,
       createdBy: req.user._id
     });
 
@@ -109,7 +114,7 @@ const bookAppointment = async (req, res) => {
 // Update a property
 const updateProperty = async (req, res) => {
   const { id } = req.params;
-  const { title, description, price, location, availableTimeSlots } = req.body;
+  const { title, description, price, location, availableTimeSlots, subcategory } = req.body;
 
   try {
     const property = await Property.findById(id);
@@ -125,6 +130,7 @@ const updateProperty = async (req, res) => {
     // parse and update location JSON
     property.location = location ? JSON.parse(location) : property.location;
     property.availableTimeSlots = availableTimeSlots ? JSON.parse(availableTimeSlots) : property.availableTimeSlots;
+    if (subcategory) property.subcategory = subcategory;
 
     // Update images if provided
     if (req.files && req.files.length > 0) {
