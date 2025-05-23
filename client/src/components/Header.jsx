@@ -124,8 +124,7 @@ function Header() {
                       {cat.subcategories && cat.subcategories.length > 0 && (
                         <ul className="pl-4">
                           {cat.subcategories.map((sub, idx) => (
-                            <li key={idx}>
-                              <Link to={`/category/${cat.name.toLowerCase().replace(/\s+/g, '-')}/${sub.name.toLowerCase().replace(/\s+/g, '-')}`}
+                            <li key={idx}>                              <Link to={`/category/${cat.name.toLowerCase().replace(/\s+/g, '-')}/subcategory/${sub.name.toLowerCase().replace(/\s+/g, '-')}`}
                                 onClick={() => setMobileOpen(false)}
                                 className="block px-2 py-1 text-sm hover:bg-gray-200 rounded">
                                 {sub.name}

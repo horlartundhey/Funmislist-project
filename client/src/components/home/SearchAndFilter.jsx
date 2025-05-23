@@ -11,9 +11,13 @@ const SearchAndFilter = ({ onSearch }) => {
   const [locationTerm, setLocationTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const { categories } = useSelector((state) => state.categories);
+  
   // Get subcategories for selected category
-  const selectedCategoryObj = categories?.find(cat => cat._id === selectedCategory);
+  const selectedCategoryObj = categories?.find(cat => 
+    cat.name.toLowerCase().replace(/\s+/g, '-') === selectedCategory
+  );
   const availableSubcategories = selectedCategoryObj?.subcategories || [];
+
   const handleSubmit = (e) => {
     e.preventDefault();
     // Parse combined "term in location" syntax
@@ -27,7 +31,7 @@ const SearchAndFilter = ({ onSearch }) => {
     onSearch({
       searchTerm: term,
       category: selectedCategory,
-      subcategory: selectedSubcategory,
+      subcategory: selectedSubcategory?.toLowerCase().replace(/\s+/g, '-'),
       priceRange,
       location: loc
     });
@@ -48,6 +52,7 @@ const SearchAndFilter = ({ onSearch }) => {
     });
     setShowFilters(false);
   };
+  
   // Handle category change
   const handleCategoryChange = (e) => {
     const value = e.target.value;
@@ -121,7 +126,7 @@ const SearchAndFilter = ({ onSearch }) => {
                   >
                     <option value="">All Categories</option>
                     {categories?.map((category) => (
-                      <option key={category._id} value={category._id}>
+                      <option key={category._id} value={category.name.toLowerCase().replace(/\s+/g, '-')}>
                         {category.name}
                       </option>
                     ))}
@@ -141,7 +146,7 @@ const SearchAndFilter = ({ onSearch }) => {
                         onSearch({
                           searchTerm,
                           category: selectedCategory,
-                          subcategory: subValue,
+                          subcategory: subValue.toLowerCase().replace(/\s+/g, '-'),
                           priceRange,
                           location: locationTerm
                         });

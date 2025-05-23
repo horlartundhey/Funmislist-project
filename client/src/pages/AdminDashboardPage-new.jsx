@@ -23,6 +23,7 @@ function AdminDashboardPage() {
     description: '',
     price: '',
     category: '',
+    subcategory: '',
     condition: 'new',
     images: []
   });
@@ -47,12 +48,12 @@ function AdminDashboardPage() {
   
   // Update product form when editing
   useEffect(() => {
-    if (editingProduct) {
-      setProductForm({
+    if (editingProduct) {      setProductForm({
         name: editingProduct.name || '',
         description: editingProduct.description || '',
         price: editingProduct.price || '',
         category: editingProduct.category?._id || '',
+        subcategory: editingProduct.subcategory || '',
         condition: editingProduct.condition || '',
         images: [] // Cannot prefill images
       });
@@ -241,11 +242,11 @@ function AdminDashboardPage() {
     setIsLoading(true);
     
     try {
-      const formData = new FormData();
-      formData.append('name', productForm.name);
+      const formData = new FormData();      formData.append('name', productForm.name);
       formData.append('description', productForm.description);
       formData.append('price', productForm.price);
       formData.append('category', productForm.category);
+      formData.append('subcategory', productForm.subcategory || '');
       formData.append('condition', productForm.condition);
       
       if (productForm.images) {
@@ -665,9 +666,11 @@ function AdminDashboardPage() {
                               </th>
                               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Price
+                              </th>                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Category
                               </th>
                               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Category
+                                Subcategory
                               </th>
                               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Condition
@@ -701,6 +704,11 @@ function AdminDashboardPage() {
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                     {product.category?.name || 'Uncategorized'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    {product.subcategory || 'None'}
                                   </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -781,24 +789,54 @@ function AdminDashboardPage() {
                           className="w-full p-2 border border-gray-300 rounded"
                           required
                         />
+                      </div>                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Category
+                          </label>
+                          <select
+                            name="category"
+                            value={productForm.category}
+                            onChange={(e) => {
+                              const categoryId = e.target.value;
+                              setProductForm(prev => ({
+                                ...prev,
+                                category: categoryId,
+                                subcategory: '' // Reset subcategory when category changes
+                              }));
+                            }}
+                            className="w-full p-2 border border-gray-300 rounded"
+                            required
+                          >
+                            <option value="">Select Category</option>
+                            {categories && categories.map(cat => (
+                              <option key={cat._id} value={cat._id}>{cat.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {productForm.category && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Subcategory
+                            </label>
+                            <select
+                              name="subcategory"
+                              value={productForm.subcategory}
+                              onChange={handleProductChange}
+                              className="w-full p-2 border border-gray-300 rounded"
+                            >
+                              <option value="">Select Subcategory</option>
+                              {categories
+                                .find(cat => cat._id === productForm.category)
+                                ?.subcategories.map((sub, idx) => (
+                                  <option key={idx} value={sub.name}>{sub.name}</option>
+                                ))}
+                            </select>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Category
-                        </label>
-                        <select
-                          name="category"
-                          value={productForm.category}
-                          onChange={handleProductChange}
-                          className="w-full p-2 border border-gray-300 rounded"
-                          required
-                        >
-                          <option value="">Select Category</option>
-                          {categories && categories.map(cat => (
-                            <option key={cat._id} value={cat._id}>{cat.name}</option>
-                          ))}
-                        </select>
-                      </div>
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Condition
