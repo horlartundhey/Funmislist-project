@@ -4,6 +4,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { FaShoppingCart, FaBars } from 'react-icons/fa';
 import { fetchCategories } from '../slices/categorySlice';
 import { logout } from '../slices/userSlice';
+import logobg from '../assets/Funmislistbgn.png'
+
 
 function Header() {
   const dispatch = useDispatch();
@@ -23,7 +25,7 @@ function Header() {
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className={`text-2xl font-bold transition ${isHome ? 'text-white hover:text-red-400' : 'text-gray-800 hover:text-red-500'}`}>
-          Funmislist
+          <img src={logobg} alt='funmislist logo' >
         </Link>
 
         {/* Desktop Nav */}

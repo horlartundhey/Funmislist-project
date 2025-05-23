@@ -84,10 +84,10 @@ const HeroSection = () => {
         <div className="container mx-auto px-4">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 animate-fade-in">
-              Find Your Perfect Place
+              Verified listings. Trusted sellers. Happy buyers
             </h1>
             <p className="text-xl text-gray-200 mb-12 animate-fade-in-delay">
-              Discover amazing locations and experiences in your city
+              Discover amazing products, real estate properties and various categories listed.
             </p>
 
             {/* Search bar above category icons */}

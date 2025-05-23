@@ -83,7 +83,7 @@ function AdminDashboardPage() {
     setLoadingProducts(true);
     setErrorProducts(null);
     try {
-      const response = await fetch('http://localhost:5000/api/products', {
+      const response = await fetch('https://funmislist-project.vercel.app/api/products', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -101,7 +101,7 @@ function AdminDashboardPage() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/categories', {
+      const response = await fetch('https://funmislist-project.vercel.app/api/categories', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -113,7 +113,7 @@ function AdminDashboardPage() {
   const fetchProperties = useCallback(async () => {
     try {
       console.log('Fetching properties with token:', token);
-      const res = await fetch('http://localhost:5000/api/properties', {
+      const res = await fetch('https://funmislist-project.vercel.app/api/properties', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -130,7 +130,7 @@ function AdminDashboardPage() {
     setLoadingTransactions(true);
     setErrorTransactions(null);
     try {
-      const res = await fetch('http://localhost:5000/api/payments/transactions', {
+      const res = await fetch('https://funmislist-project.vercel.app/api/payments/transactions', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -238,7 +238,7 @@ function AdminDashboardPage() {
     });
 
     try {
-      const response = await fetch('http://localhost:5000/api/products', {
+      const response = await fetch('https://funmislist-project.vercel.app/api/products', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -290,7 +290,7 @@ function AdminDashboardPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/products/${editingProduct._id}`, {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${editingProduct._id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -315,7 +315,7 @@ function AdminDashboardPage() {
   const handleDeleteProduct = useCallback(async (id) => {
     setLoadingDeleteProduct(id);
     try {
-      const response = await fetch(`http://localhost:5000/api/products/${id}`, {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -354,7 +354,7 @@ function AdminDashboardPage() {
         formData.append('image', newCategory.image);
       }
 
-      const response = await fetch('http://localhost:5000/api/categories', {
+      const response = await fetch('https://funmislist-project.vercel.app/api/categories', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -395,7 +395,7 @@ function AdminDashboardPage() {
         formData.append('image', editingCategory.newImage);
       }
 
-      const response = await fetch(`http://localhost:5000/api/categories/${editingCategory._id}`, {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${editingCategory._id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -421,7 +421,7 @@ function AdminDashboardPage() {
   const handleDeleteCategory = useCallback(async (id) => {
     setLoadingDeleteCategory(id);
     try {
-      const response = await fetch(`http://localhost:5000/api/categories/${id}`, {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -445,7 +445,7 @@ function AdminDashboardPage() {
   const handleTogglePublish = useCallback(async (product) => {
     setLoadingPublishToggle(product._id);
     try {
-      const response = await fetch(`http://localhost:5000/api/products/${product._id}/publish`, {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${product._id}/publish`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -469,7 +469,7 @@ function AdminDashboardPage() {
   const handleTogglePropertyPublish = async (property) => {
     try {
       setLoadingPublishToggle(property._id);
-      const response = await fetch(`http://localhost:5000/api/properties/${property._id}/publish`, {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/properties/${property._id}/publish`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       });
@@ -511,7 +511,7 @@ function AdminDashboardPage() {
           formData.append('images', image);
         });
       }
-      const response = await fetch('http://localhost:5000/api/properties', {
+      const response = await fetch('https://funmislist-project.vercel.app/api/properties', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -555,7 +555,7 @@ function AdminDashboardPage() {
         });
       }
 
-      const response = await fetch(`http://localhost:5000/api/properties/${editingProperty._id}`, {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/properties/${editingProperty._id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -581,7 +581,7 @@ function AdminDashboardPage() {
   const handleDeleteProperty = useCallback(async (id) => {
     setLoadingDeleteProperty(id);
     try {
-      const response = await fetch(`http://localhost:5000/api/properties/${id}`, {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/properties/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
