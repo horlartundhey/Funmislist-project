@@ -8,11 +8,12 @@ import FeaturedCategories from '../components/home/FeaturedCategories';
 import SearchAndFilter from '../components/home/SearchAndFilter';
 
 function CategoryPage() {
-  const { name } = useParams();
+  const { name, subcategory } = useParams(); // Get both category and subcategory from URL
   const dispatch = useDispatch();
   const { products, loading, error } = useSelector((state) => state.products);
   const { categories } = useSelector((state) => state.categories);
   const [categoryName, setCategoryName] = useState('');
+  const [subcategoryName, setSubcategoryName] = useState('');
   const [filteredProducts, setFilteredProducts] = useState([]);
 
   // fetch categories always
@@ -22,32 +23,60 @@ function CategoryPage() {
 
   // fetch products for specific category
   useEffect(() => {
-    if (name) dispatch(fetchProducts({ category: name }));
-  }, [name, dispatch]);
+    if (name) {
+      dispatch(fetchProducts({ category: name, subcategory }));
+    }
+  }, [name, subcategory, dispatch]);
 
-  // set category name
+  // set category and subcategory names
   useEffect(() => {
     if (categories.length > 0 && name) {
       const cat = categories.find(c => c.name.toLowerCase().replace(/\s+/g, '-') === name);
-      setCategoryName(cat?.name || '');
+      if (cat) {
+        setCategoryName(cat.name);
+        if (subcategory) {
+          const sub = cat.subcategories?.find(s => 
+            s.name.toLowerCase().replace(/\s+/g, '-') === subcategory
+          );
+          setSubcategoryName(sub?.name || '');
+        } else {
+          setSubcategoryName('');
+        }
+      }
     }
-  }, [categories, name]);
+  }, [categories, name, subcategory]);
 
-  // filter loaded products by category slug
+  // filter loaded products by category and subcategory
   useEffect(() => {
     if (name) {
-      const filtered = products.filter(p => 
+      let filtered = products.filter(p => 
         p.category?.name.toLowerCase().replace(/\s+/g, '-') === name
       );
+      
+      if (subcategory) {
+        filtered = filtered.filter(p =>
+          p.subcategory?.toLowerCase().replace(/\s+/g, '-') === subcategory
+        );
+      }
+      
       setFilteredProducts(filtered);
     } else {
       setFilteredProducts([]);
     }
-  }, [products, name]);
+  }, [products, name, subcategory]);
 
   // handle search & price filters
   const handleSearch = ({ searchTerm, priceRange }) => {
-    let temp = filteredProducts;
+    let temp = products.filter(p => 
+      p.category?.name.toLowerCase().replace(/\s+/g, '-') === name
+    );
+    
+    if (subcategory) {
+      temp = temp.filter(p =>
+        p.subcategory?.toLowerCase().replace(/\s+/g, '-') === subcategory
+      );
+    }
+    
     if (searchTerm) {
       temp = temp.filter((p) => p.name?.toLowerCase().includes(searchTerm.toLowerCase()));
     }
@@ -75,7 +104,7 @@ function CategoryPage() {
       <div className="container mx-auto p-4 text-center">
         <p className="text-xl text-red-500">Error: {error}</p>
         <button
-          onClick={() => dispatch(fetchProducts({ category: name }))}
+          onClick={() => dispatch(fetchProducts({ category: name, subcategory }))}
           className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           Try Again
@@ -88,9 +117,20 @@ function CategoryPage() {
     <div className="container mx-auto px-4 py-8">
       {/* Category banner */}
       <div className="mb-8 bg-red-50 rounded-lg p-6 text-center">
-        <h1 className="text-3xl font-bold">{categoryName}</h1>
-        <p className="mt-2 text-gray-600">Browse our {categoryName} listings</p>
+        <h1 className="text-3xl font-bold">
+          {categoryName}
+          {subcategoryName && (
+            <>
+              <span className="mx-2 text-gray-400">/</span>
+              <span className="text-gray-700">{subcategoryName}</span>
+            </>
+          )}
+        </h1>
+        <p className="mt-2 text-gray-600">
+          Browse our {subcategoryName ? `${subcategoryName} in ${categoryName}` : categoryName} listings
+        </p>
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar filters */}
         <aside className="lg:col-span-1">
@@ -99,8 +139,11 @@ function CategoryPage() {
         {/* Products grid */}
         <section className="lg:col-span-3">
           {filteredProducts.length === 0 ? (
-            <div className="text-center py-10">
-              <p className="text-xl text-gray-600">No products found.</p>
+            <div className="text-center py-10 bg-gray-50 rounded-lg">
+              <p className="text-xl text-gray-600">No products found in this {subcategoryName ? 'subcategory' : 'category'}.</p>
+              {subcategoryName && (
+                <p className="mt-2 text-gray-500">Try browsing other subcategories in {categoryName}.</p>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
