@@ -25,7 +25,7 @@ function Header() {
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className={`text-2xl font-bold transition ${isHome ? 'text-white hover:text-red-400' : 'text-gray-800 hover:text-red-500'}`}>
-          <img src={logobg} alt='funmislist logo' />
+          <img src={logobg} alt='funmislist logo' style={{width:'50px',}} />
         </Link>
 
         {/* Desktop Nav */}
