@@ -35,6 +35,7 @@ function Layout() {
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/category" element={<CategoryPage />} />
           <Route path="/category/:name" element={<CategoryPage />} />
+          <Route path="/category/:name/subcategory/:subcategory" element={<CategoryPage />} />
           <Route path="/product/:id" element={<ProductDetailsPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route

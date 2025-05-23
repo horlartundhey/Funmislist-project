@@ -46,15 +46,17 @@ function Header() {
                         className="block px-4 py-2 hover:bg-gray-100 font-semibold">
                         {cat.name}
                       </Link>
-                      {cat.subcategories && cat.subcategories.length > 0 && (
+                    {cat.subcategories && cat.subcategories.length > 0 && (
                         <div className="absolute left-full top-0 w-48 bg-white rounded-lg shadow-xl 
                           opacity-0 invisible group-hover/item:opacity-100 group-hover/item:visible 
                           transition-all duration-300 ease-in-out -ml-2">
                           <ul className="py-2">
                             {cat.subcategories.map((sub, idx) => (
                               <li key={idx}>
-                                <Link to={`/category/${cat.name.toLowerCase().replace(/\s+/g, '-')}/${sub.name.toLowerCase().replace(/\s+/g, '-')}`}
-                                  className="block px-4 py-2 text-sm hover:bg-gray-100">
+                                <Link 
+                                  to={`/category/${cat.name.toLowerCase().replace(/\s+/g, '-')}/subcategory/${sub.name.toLowerCase().replace(/\s+/g, '-')}`}
+                                  className="block px-4 py-2 text-sm hover:bg-gray-100"
+                                >
                                   {sub.name}
                                 </Link>
                               </li>

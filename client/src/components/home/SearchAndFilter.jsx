@@ -6,11 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 const SearchAndFilter = ({ onSearch }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [locationTerm, setLocationTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const { categories } = useSelector((state) => state.categories);
-
+  // Get subcategories for selected category
+  const selectedCategoryObj = categories?.find(cat => cat._id === selectedCategory);
+  const availableSubcategories = selectedCategoryObj?.subcategories || [];
   const handleSubmit = (e) => {
     e.preventDefault();
     // Parse combined "term in location" syntax
@@ -24,6 +27,7 @@ const SearchAndFilter = ({ onSearch }) => {
     onSearch({
       searchTerm: term,
       category: selectedCategory,
+      subcategory: selectedSubcategory,
       priceRange,
       location: loc
     });
@@ -32,10 +36,30 @@ const SearchAndFilter = ({ onSearch }) => {
   const handleReset = () => {
     setSearchTerm('');
     setSelectedCategory('');
+    setSelectedSubcategory('');
     setPriceRange({ min: '', max: '' });
     setLocationTerm('');
-    onSearch({ searchTerm: '', category: '', priceRange: { min: '', max: '' }, location: '' });
+    onSearch({ 
+      searchTerm: '', 
+      category: '', 
+      subcategory: '',
+      priceRange: { min: '', max: '' }, 
+      location: '' 
+    });
     setShowFilters(false);
+  };
+  // Handle category change
+  const handleCategoryChange = (e) => {
+    const value = e.target.value;
+    setSelectedCategory(value);
+    setSelectedSubcategory(''); // Reset subcategory when category changes
+    onSearch({
+      searchTerm,
+      category: value,
+      subcategory: '',
+      priceRange,
+      location: locationTerm
+    });
   };
 
   return (
@@ -85,15 +109,14 @@ const SearchAndFilter = ({ onSearch }) => {
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
+            >              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Category
                   </label>
                   <select
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={handleCategoryChange}
                     className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   >
                     <option value="">All Categories</option>
@@ -104,6 +127,36 @@ const SearchAndFilter = ({ onSearch }) => {
                     ))}
                   </select>
                 </div>
+
+                {selectedCategory && availableSubcategories.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Subcategory
+                    </label>
+                    <select
+                      value={selectedSubcategory}
+                      onChange={(e) => {
+                        const subValue = e.target.value;
+                        setSelectedSubcategory(subValue);
+                        onSearch({
+                          searchTerm,
+                          category: selectedCategory,
+                          subcategory: subValue,
+                          priceRange,
+                          location: locationTerm
+                        });
+                      }}
+                      className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">All Subcategories</option>
+                      {availableSubcategories.map((sub, idx) => (
+                        <option key={idx} value={sub.name}>
+                          {sub.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

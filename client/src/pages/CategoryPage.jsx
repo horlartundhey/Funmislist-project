@@ -7,8 +7,7 @@ import ProductCard from '../components/home/ProductCard';
 import FeaturedCategories from '../components/home/FeaturedCategories';
 import SearchAndFilter from '../components/home/SearchAndFilter';
 
-function CategoryPage() {
-  const { name, subcategory } = useParams(); // Get both category and subcategory from URL
+function CategoryPage() {  const { name, subcategory } = useParams(); // Get both category and subcategory from URL
   const dispatch = useDispatch();
   const { products, loading, error } = useSelector((state) => state.products);
   const { categories } = useSelector((state) => state.categories);
