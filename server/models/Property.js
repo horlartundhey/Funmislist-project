@@ -47,15 +47,22 @@ const propertySchema = new mongoose.Schema({
         default: false,
       },
     },
-  ],
-  category: {
+  ],  category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
-    required: true,
+    required: true
   },
   subcategory: {
-    type: String, // store subcategory name for simplicity
-    required: false,
+    type: String,
+    validate: {
+      validator: async function(v) {
+        if (!v) return true; // Subcategory is optional
+        const category = await mongoose.model('Category').findById(this.category);
+        return category && category.subcategories.some(sub => sub.name === v);
+      },
+      message: props => `${props.value} is not a valid subcategory for the selected category`
+    },
+    required: false
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,

@@ -13,12 +13,9 @@ const categorySchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  subcategories: [
-    {
-      name: { type: String, required: true },
-      description: { type: String },
-    }
-  ],
+  subcategories: [{
+    name: { type: String, required: true }
+  }],
 }, { timestamps: true });
 
 module.exports = mongoose.model('Category', categorySchema);

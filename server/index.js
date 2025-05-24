@@ -3,6 +3,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
+const mongoose = require('mongoose');
 
 // Load environment variables FIRST
 dotenv.config();
@@ -20,8 +21,26 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Connect to database
-connectDB();
+// Connect to database - with connection status tracking
+let dbConnected = false;
+connectDB().then(() => {
+  dbConnected = true;
+}).catch(err => {
+  console.error('Initial database connection failed:', err.message);
+});
+
+// Middleware to check DB connection status
+app.use((req, res, next) => {
+  if (!dbConnected && !mongoose.connection.readyState) {
+    if (req.path.startsWith('/api')) {
+      return res.status(503).json({ 
+        message: 'Database connection unavailable. Please try again later.',
+        error: 'SERVICE_UNAVAILABLE'
+      });
+    }
+  }
+  next();
+});
 
 // Middleware
 app.use(cors({

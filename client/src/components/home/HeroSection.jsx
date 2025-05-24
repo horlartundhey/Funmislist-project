@@ -1,21 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FaStore, FaDumbbell, FaGuitar, FaHotel, FaHome, FaBriefcase, FaLaptop, FaBook, FaShoppingBag, FaPlane, FaPaw, FaFutbol, FaGlassCheers, FaSpa, FaCar, FaStethoscope, FaTree, FaTools, FaUniversity, FaFilm, FaPalette, FaCouch, FaTshirt } from 'react-icons/fa';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchCategories } from '../../slices/categorySlice';
-import { fetchProducts } from '../../slices/productSlice';
-import { fetchProperties } from '../../slices/propertySlice';
 import React from 'react';
 
-const HeroSection = () => {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
+const HeroSection = () => {  const [currentSlide, setCurrentSlide] = useState(0);
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { categories } = useSelector((state) => state.categories);
-  const { products } = useSelector((state) => state.products);
-  const { properties } = useSelector((state) => state.properties);
+  const { filteredCategories: categories } = useSelector((state) => state.categories);
 
   const slides = [
     'https://res.cloudinary.com/kamisama/image/upload/v1746846396/Untitled_design_dxd5g3.png',
@@ -32,30 +24,7 @@ const HeroSection = () => {
 
   useEffect(() => {
     dispatch(fetchCategories());
-    dispatch(fetchProducts());
-    dispatch(fetchProperties());
   }, [dispatch]);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) {
-      setSearchResults([]);
-      return;
-    }
-    // Search products and properties by name, category, or subcategory
-    const productMatches = products.filter((p) =>
-      p.name?.toLowerCase().includes(term) ||
-      p.category?.name?.toLowerCase().includes(term) ||
-      (p.subcategory && p.subcategory.toLowerCase().includes(term))
-    );
-    const propertyMatches = properties.filter((p) =>
-      p.title?.toLowerCase().includes(term) ||
-      p.category?.name?.toLowerCase().includes(term) ||
-      (p.subcategory && p.subcategory.toLowerCase().includes(term))
-    );
-    setSearchResults([...productMatches, ...propertyMatches]);
-  };
 
   return (
     <div className="relative h-[80vh] overflow-hidden">
@@ -92,12 +61,10 @@ const HeroSection = () => {
 
             {/* Search bar above category icons */}
             <div className="max-w-lg mx-auto mb-8">
-              <form onSubmit={handleSearch} className="flex">
+              <form onSubmit={(e) => e.preventDefault()} className="flex">
                 <input
                   type="text"
                   placeholder="Search for listings..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
                   className="flex-grow px-4 py-2 rounded-l-full focus:outline-none"
                 />
                 <button
@@ -108,39 +75,6 @@ const HeroSection = () => {
                 </button>
               </form>
             </div>
-            {/* Search Results */}
-            {searchTerm && searchResults.length > 0 && (
-              <div className="bg-white/90 rounded-lg shadow-lg p-6 mt-4 max-w-2xl mx-auto">
-                <h3 className="text-lg font-semibold mb-2 text-gray-800">Search Results</h3>
-                <ul className="divide-y divide-gray-200">
-                  {searchResults.map((item, idx) => (
-                    <li key={item._id || idx} className="py-2 flex flex-col md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <span className="font-medium text-gray-900">
-                          {item.name || item.title}
-                        </span>
-                        <span className="ml-2 text-xs text-gray-500">
-                          {item.category?.name}
-                          {item.subcategory ? ` / ${item.subcategory}` : ''}
-                        </span>
-                      </div>
-                      <button
-                        className="text-blue-600 hover:underline text-sm mt-1 md:mt-0"
-                        onClick={() => {
-                          if (item.name) {
-                            navigate(`/product/${item._id}`);
-                          } else {
-                            navigate(`/property/${item._id}`);
-                          }
-                        }}
-                      >
-                        View Details
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
 
             {/* Popular categories icons - Listify style */}
             <div className="mt-8 flex justify-center space-x-6">

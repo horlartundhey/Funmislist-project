@@ -11,9 +11,10 @@ export const fetchCategories = createAsyncThunk(
 );
 
 const categorySlice = createSlice({
-  name: 'categories',
-  initialState: {
-    categories: [],
+  name: 'categories',  initialState: {
+    categories: [], // deprecated, use filteredCategories or allCategories instead
+    allCategories: [], // includes all categories including Real Estate
+    filteredCategories: [], // excludes Real Estate category
     status: 'idle',
     error: null,
   },
@@ -22,12 +23,13 @@ const categorySlice = createSlice({
     builder
       .addCase(fetchCategories.pending, (state) => {
         state.status = 'loading';
-      })
-      .addCase(fetchCategories.fulfilled, (state, action) => {
+      })      .addCase(fetchCategories.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // Filter out 'Real Estate' from categories
-        state.categories = action.payload.filter(
-          (cat) => cat.name.toLowerCase() !== 'real estate'
+        state.categories = action.payload;
+        state.allCategories = action.payload; // Keep all categories including Real Estate
+        // For general use, filter out Real Estate
+        state.filteredCategories = action.payload.filter(
+          cat => cat.name.toLowerCase() !== 'real estate'
         );
       })
       .addCase(fetchCategories.rejected, (state, action) => {

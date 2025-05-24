@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { formatDate } from '../utils/dateFormatter';
 
@@ -9,8 +9,7 @@ function PropertyForm({
   isEditing = false,
   isLoading = false,
   onCancel
-}) {
-  const [form, setForm] = useState({
+}) {  const [form, setForm] = useState({
     title: '',
     description: '',
     price: '',
@@ -24,13 +23,38 @@ function PropertyForm({
     subcategory: ''
   });
   
+  // Get available subcategories based on selected category
+  const availableSubcategories = useMemo(() => {
+    if (!form.category) return [];
+    const selectedCategory = categories.find(cat => cat._id === form.category);
+    return selectedCategory?.subcategories || [];
+  }, [categories, form.category]);
+
   const [newTimeSlot, setNewTimeSlot] = useState({
     date: '',
     time: ''
-  });
-
-  useEffect(() => {
+  });  useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
+      let timeSlots = initialData.availableTimeSlots || [];
+        // If the time slots come as a JSON string, keep it as is
+      // If it's already an array, no need to stringify
+      if (typeof timeSlots === 'string') {
+        try {
+          // Try to parse it to make sure it's valid JSON
+          JSON.parse(timeSlots);
+        } catch (error) {
+          // If it's not valid JSON, convert the array to string
+          console.error('Invalid JSON for availableTimeSlots:', error);
+          timeSlots = JSON.stringify([]);
+        }
+      }
+      
+      // Find the category object to verify subcategory compatibility
+      const categoryObj = categories.find(cat => cat._id === initialData.category);
+      const isSubcategoryValid = categoryObj?.subcategories?.some(
+        sub => sub.name === initialData.subcategory
+      );
+      
       setForm({
         title: initialData.title || '',
         description: initialData.description || '',
@@ -40,26 +64,51 @@ function PropertyForm({
         state: initialData.location?.state || '',
         zipCode: initialData.location?.zipCode || '',
         images: [], // Images cannot be prefilled
-        availableTimeSlots: initialData.availableTimeSlots || [],
+        availableTimeSlots: timeSlots,
         category: initialData.category || '',
-        subcategory: initialData.subcategory || ''
+        // Only set subcategory if it's valid for the current category
+        subcategory: isSubcategoryValid ? initialData.subcategory : ''
       });
     }
-  }, [initialData]);
-
-  const handleChange = (e) => {
+  }, [initialData]);  const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (name === 'images') {
       setForm((prev) => ({ ...prev, images: files }));
     } else if (name === 'newSlotDate' || name === 'newSlotTime') {
       setNewTimeSlot(prev => ({ ...prev, [name === 'newSlotDate' ? 'date' : 'time']: value }));
     } else if (name === 'category') {
-      setForm((prev) => ({ ...prev, category: value, subcategory: '' }));
+      // Reset subcategory when category changes
+      console.log(`Category changed to: ${value}`);
+      
+      // Verify if we need to reset subcategory
+      const categoryObj = categories.find(cat => cat._id === value);
+      const currentSubcat = form.subcategory;
+      const isSubcategoryValid = categoryObj?.subcategories?.some(
+        sub => sub.name === currentSubcat
+      );
+      
+      setForm((prev) => ({ 
+        ...prev, 
+        [name]: value,
+        // Only reset subcategory if it's not valid for the new category
+        subcategory: isSubcategoryValid ? currentSubcat : ''
+      }));
+    } else if (name === 'subcategory') {
+      // Verify subcategory is valid for current category
+      const categoryObj = categories.find(cat => cat._id === form.category);
+      const isValid = categoryObj?.subcategories?.some(sub => sub.name === value);
+      
+      if (isValid || value === '') {
+        setForm((prev) => ({ ...prev, [name]: value }));
+      } else {
+        console.warn('Invalid subcategory selected');
+        toast.error('Invalid subcategory selected');
+      }
     } else {
+      console.log(`Form field changed: ${name} = ${value}`);
       setForm((prev) => ({ ...prev, [name]: value }));
     }
   };
-
   const handleAddTimeSlot = () => {
     if (!newTimeSlot.date || !newTimeSlot.time) {
       toast.error('Please select both date and time');
@@ -73,38 +122,79 @@ function PropertyForm({
       return;
     }
 
-    setForm(prev => ({
-      ...prev,
-      availableTimeSlots: [
-        ...prev.availableTimeSlots,
+    setForm(prev => {
+      const currentSlots = typeof prev.availableTimeSlots === 'string' 
+        ? JSON.parse(prev.availableTimeSlots) 
+        : prev.availableTimeSlots;
+      
+      const updatedSlots = [
+        ...currentSlots,
         { date: dateTime.toISOString(), isBooked: false }
-      ]
-    }));
+      ];
+      
+      return {
+        ...prev,
+        availableTimeSlots: typeof prev.availableTimeSlots === 'string'
+          ? JSON.stringify(updatedSlots)
+          : updatedSlots
+      };
+    });
 
     setNewTimeSlot({ date: '', time: '' });
   };
-
   const handleRemoveTimeSlot = (index) => {
-    setForm(prev => ({
-      ...prev,
-      availableTimeSlots: prev.availableTimeSlots.filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleSubmit = (e) => {
+    setForm(prev => {
+      const currentSlots = typeof prev.availableTimeSlots === 'string' 
+        ? JSON.parse(prev.availableTimeSlots) 
+        : prev.availableTimeSlots;
+      
+      const updatedSlots = currentSlots.filter((_, i) => i !== index);
+      
+      return {
+        ...prev,
+        availableTimeSlots: typeof prev.availableTimeSlots === 'string'
+          ? JSON.stringify(updatedSlots)
+          : updatedSlots
+      };
+    });
+  };  const handleSubmit = (e) => {
     e.preventDefault();
-    if (form.availableTimeSlots.length === 0) {
+    
+    // Validate category
+    if (!form.category) {
+      toast.error('Please select a category');
+      return;
+    }
+
+    // Validate subcategory if category has subcategories
+    const categoryObj = categories.find(cat => cat._id === form.category);
+    if (categoryObj?.subcategories?.length > 0 && !form.subcategory) {
+      toast.error('Please select a subcategory');
+      return;
+    }
+
+    // Verify subcategory is valid for selected category
+    if (form.subcategory && !categoryObj?.subcategories?.some(sub => sub.name === form.subcategory)) {
+      toast.error('Invalid subcategory for selected category');
+      return;
+    }
+
+    const timeSlotsArray = typeof form.availableTimeSlots === 'string'
+      ? JSON.parse(form.availableTimeSlots)
+      : form.availableTimeSlots;
+      
+    if (timeSlotsArray.length === 0) {
       toast.error('Please add at least one time slot');
       return;
     }
+    
     onSubmit({
       ...form,
       location: { address: form.address, city: form.city, state: form.state, zipCode: form.zipCode },
-      availableTimeSlots: form.availableTimeSlots.map(slot => ({
+      availableTimeSlots: timeSlotsArray.map(slot => ({
         date: slot.date,
         isBooked: slot.isBooked || false
-      })),
-      subcategory: form.subcategory
+      }))
     });
   };
 
@@ -148,18 +238,18 @@ function PropertyForm({
           <option key={cat._id} value={cat._id}>{cat.name}</option>
         ))}
       </select>
-      {/* Subcategory Dropdown */}
-      {form.category && (
+
+      {/* Subcategory dropdown - only show when category is selected and has subcategories */}
+      {form.category && availableSubcategories.length > 0 && (
         <select
           name="subcategory"
-          value={form.subcategory || ''}
+          value={form.subcategory}
           onChange={handleChange}
-          className="p-2 border rounded w-full mt-2"
-          required
+          className="p-2 border rounded w-full"
         >
-          <option value="">Select Subcategory</option>
-          {(categories.find(c => c._id === form.category)?.subcategories || []).map((sub, idx) => (
-            <option key={idx} value={sub.name}>{sub.name}</option>
+          <option value="">Select Subcategory (Optional)</option>
+          {availableSubcategories.map((sub) => (
+            <option key={sub.name} value={sub.name}>{sub.name}</option>
           ))}
         </select>
       )}
@@ -230,8 +320,9 @@ function PropertyForm({
             Add Slot
           </button>
         </div>
-        <div className="mt-2">
-          {form.availableTimeSlots.map((slot, index) => (
+        <div className="mt-2">          {(typeof form.availableTimeSlots === 'string' 
+            ? JSON.parse(form.availableTimeSlots) 
+            : form.availableTimeSlots).map((slot, index) => (
             <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded mb-1">
               <span>{formatDate(slot.date)}</span>
               <button
@@ -243,7 +334,9 @@ function PropertyForm({
               </button>
             </div>
           ))}
-          {form.availableTimeSlots.length === 0 && (
+          {(typeof form.availableTimeSlots === 'string' 
+            ? JSON.parse(form.availableTimeSlots).length === 0 
+            : form.availableTimeSlots.length === 0) && (
             <p className="text-gray-500 text-sm">No time slots added yet</p>
           )}
         </div>

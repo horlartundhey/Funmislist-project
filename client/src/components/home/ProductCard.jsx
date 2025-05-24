@@ -30,9 +30,7 @@ const ProductCard = ({ product }) => {
 
   return (
     <div className="group relative bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300">
-      <Link to={`/product/${product._id}`} className="block">
-        <div className="relative aspect-square overflow-hidden rounded-t-xl">
-          <img
+      <Link to={`/product/${product._id}`} className="block">        <div className="relative aspect-square overflow-hidden rounded-t-xl">          <img
             src={product.images && product.images.length > 0 ? product.images[0] : '/images/no-image-placeholder.png'}
             onError={(e) => {
               e.currentTarget.src = '/images/no-image-placeholder.png';
@@ -41,13 +39,15 @@ const ProductCard = ({ product }) => {
             alt={product.name}
             className="h-full w-full object-cover object-center transform group-hover:scale-110 transition-transform duration-500"
           />
-          <span className={`absolute top-2 left-2 text-xs px-2 py-1 rounded-full backdrop-blur-sm ${
-            product.condition === 'used' 
-              ? 'bg-black/80 text-white' 
-              : 'bg-green-500/90 text-white'
-          }`}>
-            {product.condition === 'used' ? 'Pre-owned' : 'New'}
-          </span>
+          {product.condition && (
+            <span className={`absolute top-2 left-2 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm ${
+              product.condition === 'pre-owned' 
+                ? 'bg-amber-600/90' 
+                : 'bg-emerald-600/90'
+            }`}>
+              {product.condition === 'pre-owned' ? 'Pre-owned' : 'New'}
+            </span>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         </div>
 
@@ -59,10 +59,6 @@ const ProductCard = ({ product }) => {
             <h3 className="text-gray-900 font-medium text-base line-clamp-1 group-hover:text-red-600 transition-colors">
               {product.name}
             </h3>
-            {/* Show condition in description as 'Pre-owned' instead of 'used' */}
-            <p className="text-xs text-gray-500 mt-1">
-              Condition: {product.condition === 'used' ? 'Pre-owned' : 'New'}
-            </p>
           </div>
           
           <div className="flex items-center justify-between">

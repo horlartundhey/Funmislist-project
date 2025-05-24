@@ -16,8 +16,12 @@ const getProperties = async (req, res) => {
         filter.category = req.query.category;
       }
     }
+    
+    // Handle subcategory filtering
     if (req.query.subcategory) {
-      filter.subcategory = req.query.subcategory;
+      console.log('Received subcategory query:', req.query.subcategory);
+      // Use case-insensitive matching for subcategory
+      filter.subcategory = { $regex: new RegExp('^' + req.query.subcategory + '$', 'i') };
     }
     
     console.log('Querying properties with filter:', filter); // Debug log
@@ -37,8 +41,7 @@ const getProperties = async (req, res) => {
 };
 
 // Create a new property
-const createProperty = async (req, res) => {
-  try {
+const createProperty = async (req, res) => {  try {
     const {
       title,
       description,
@@ -52,16 +55,25 @@ const createProperty = async (req, res) => {
     const imageUrls = req.files.map((file) => file.path);
     const parsedSlots = JSON.parse(availableTimeSlots);
     // parse location JSON
-    const parsedLocation = JSON.parse(location);
-
-    // Convert category to ObjectId if valid
-    let categoryId;
-    if (mongoose.isValidObjectId(category)) {
-      categoryId = new mongoose.Types.ObjectId(category);
-    } else {
+    const parsedLocation = JSON.parse(location);    // Validate category and subcategory
+    if (!mongoose.isValidObjectId(category)) {
       return res.status(400).json({ message: 'Invalid category ID' });
     }
 
+    const categoryDoc = await mongoose.model('Category').findById(category);
+    if (!categoryDoc) {
+      return res.status(400).json({ message: 'Category not found' });
+    }
+
+    // Validate subcategory if provided
+    if (subcategory) {
+      const isValidSubcategory = categoryDoc.subcategories.some(sub => sub.name === subcategory);
+      if (!isValidSubcategory) {
+        return res.status(400).json({ message: 'Invalid subcategory for the selected category' });
+      }
+    }
+
+    // Create the property with validated data
     const property = await Property.create({
       title,
       description,
@@ -114,7 +126,7 @@ const bookAppointment = async (req, res) => {
 // Update a property
 const updateProperty = async (req, res) => {
   const { id } = req.params;
-  const { title, description, price, location, availableTimeSlots, subcategory } = req.body;
+  const { title, description, price, location, availableTimeSlots, category, subcategory } = req.body;
 
   try {
     const property = await Property.findById(id);
@@ -123,14 +135,46 @@ const updateProperty = async (req, res) => {
       return res.status(404).json({ message: 'Property not found' });
     }
 
-    // Update fields
+    // Update basic fields
     property.title = title || property.title;
     property.description = description || property.description;
     property.price = price || property.price;
-    // parse and update location JSON
+    
+    // Update category and subcategory with validation
+    if (category) {
+      // Verify category exists
+      if (!mongoose.isValidObjectId(category)) {
+        return res.status(400).json({ message: 'Invalid category ID' });
+      }
+      const categoryExists = await mongoose.model('Category').findById(category);
+      if (!categoryExists) {
+        return res.status(400).json({ message: 'Category not found' });
+      }
+      property.category = category;
+      
+      // If subcategory is provided, validate it belongs to the category
+      if (subcategory) {
+        const isValidSubcategory = categoryExists.subcategories.some(sub => sub.name === subcategory);
+        if (!isValidSubcategory) {
+          return res.status(400).json({ message: 'Invalid subcategory for the selected category' });
+        }
+        property.subcategory = subcategory;
+      } else {
+        property.subcategory = ''; // Clear subcategory if not provided with new category
+      }
+    } else if (subcategory) {
+      // If only subcategory is updated, validate it against existing category
+      const existingCategory = await mongoose.model('Category').findById(property.category);
+      const isValidSubcategory = existingCategory.subcategories.some(sub => sub.name === subcategory);
+      if (!isValidSubcategory) {
+        return res.status(400).json({ message: 'Invalid subcategory for the existing category' });
+      }
+      property.subcategory = subcategory;
+    }
+
+    // Update location and availableTimeSlots
     property.location = location ? JSON.parse(location) : property.location;
     property.availableTimeSlots = availableTimeSlots ? JSON.parse(availableTimeSlots) : property.availableTimeSlots;
-    if (subcategory) property.subcategory = subcategory;
 
     // Update images if provided
     if (req.files && req.files.length > 0) {

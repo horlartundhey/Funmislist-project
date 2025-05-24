@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 
      const FeaturedCategories = () => {
        const dispatch = useDispatch();
-       const { categories } = useSelector((state) => state.categories);
+       const { filteredCategories: categories } = useSelector((state) => state.categories);
 
        useEffect(() => {
          dispatch(fetchCategories());
@@ -15,10 +15,11 @@ import { useEffect } from 'react';
          <section className="max-w-7xl mx-auto px-4 py-16">
            <h2 className="text-3xl font-bold text-gray-900 text-center mt-10 mb-12">
              Popular Categories
-           </h2>
-           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-             {categories.map((category) => {
-               const slug = category.name.toLowerCase().replace(/\s+/g, '-');
+           </h2>           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+             {categories
+               .filter(category => category.name.toLowerCase() !== 'real estate')
+               .map((category) => {
+                 const slug = category.name.toLowerCase().replace(/\s+/g, '-');
                return (
                  <Link
                    key={category._id}

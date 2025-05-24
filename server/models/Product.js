@@ -12,19 +12,17 @@ const productSchema = new mongoose.Schema({
   price: {
     type: Number,
     required: true,
-  },
-  category: {
+  },  category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
     required: true,
   },
   subcategory: {
-    type: String, // store subcategory name for simplicity
-    required: false,
-  },
-  condition: {
     type: String,
-    enum: ['new', 'used'],
+    required: false,
+  },  condition: {
+    type: String,
+    enum: ['new', 'pre-owned'],
     required: true,
   },
   stock: {

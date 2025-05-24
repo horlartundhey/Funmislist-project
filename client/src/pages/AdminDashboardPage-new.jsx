@@ -7,7 +7,6 @@ import PropertyForm from '../components/PropertyForm';
 import { fetchCategories } from '../slices/categorySlice';
 import { fetchProducts } from '../slices/productSlice';
 import { fetchProperties } from '../slices/propertySlice';
-import formatCurrency from '../utils/formatCurrency';
 
 function AdminDashboardPage() {
   // State management
@@ -18,13 +17,12 @@ function AdminDashboardPage() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [newCategory, setNewCategory] = useState({ name: '', description: '' });
   const [editingCategory, setEditingCategory] = useState(null);
-  const [editingProperty, setEditingProperty] = useState(null);  const [productForm, setProductForm] = useState({
+  const [editingProperty, setEditingProperty] = useState(null);
+  const [productForm, setProductForm] = useState({
     name: '',
     description: '',
     price: '',
     category: '',
-    subcategory: '',
-    condition: 'new',
     images: []
   });
   const [editingProduct, setEditingProduct] = useState(null);
@@ -48,13 +46,12 @@ function AdminDashboardPage() {
   
   // Update product form when editing
   useEffect(() => {
-    if (editingProduct) {      setProductForm({
+    if (editingProduct) {
+      setProductForm({
         name: editingProduct.name || '',
         description: editingProduct.description || '',
         price: editingProduct.price || '',
         category: editingProduct.category?._id || '',
-        subcategory: editingProduct.subcategory || '',
-        condition: editingProduct.condition || '',
         images: [] // Cannot prefill images
       });
     }
@@ -105,19 +102,11 @@ function AdminDashboardPage() {
   // Category Functions
   // =====================
   const handleCategoryChange = (e) => {
-    const { name, value, type, files } = e.target;
+    const { name, value } = e.target;
     if (editingCategory) {
-      if (type === 'file') {
-        setEditingCategory({ ...editingCategory, newImage: files[0] });
-      } else {
-        setEditingCategory({ ...editingCategory, [name]: value });
-      }
+      setEditingCategory({ ...editingCategory, [name]: value });
     } else {
-      if (type === 'file') {
-        setNewCategory({ ...newCategory, image: files[0] });
-      } else {
-        setNewCategory({ ...newCategory, [name]: value });
-      }
+      setNewCategory({ ...newCategory, [name]: value });
     }
   };
   
@@ -125,20 +114,14 @@ function AdminDashboardPage() {
     e.preventDefault();
     setIsLoading(true);
     
-    try {      const formData = new FormData();
-      formData.append('name', newCategory.name);
-      formData.append('description', newCategory.description);
-      formData.append('subcategories', JSON.stringify(newCategory.subcategories || []));
-      if (newCategory.image) {
-        formData.append('image', newCategory.image);
-      }
-
+    try {
       const response = await fetch('http://localhost:5000/api/categories', {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${userInfo.token}`
         },
-        body: formData
+        body: JSON.stringify(newCategory)
       });
       
       if (!response.ok) {
@@ -160,28 +143,19 @@ function AdminDashboardPage() {
     setEditingCategory(category);
     setCategorySubSection('edit');
   };
-    const handleUpdateCategory = async (e) => {
+  
+  const handleUpdateCategory = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // Validate subcategories
-      const validSubcategories = (editingCategory.subcategories || []).filter(sub => sub.name.trim());
-      
-      const formData = new FormData();
-      formData.append('name', editingCategory.name);
-      formData.append('description', editingCategory.description);
-      formData.append('subcategories', JSON.stringify(validSubcategories));
-      if (editingCategory.newImage) {
-        formData.append('image', editingCategory.newImage);
-      }
-
       const response = await fetch(`http://localhost:5000/api/categories/${editingCategory._id}`, {
         method: 'PUT',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${userInfo.token}`
         },
-        body: formData
+        body: JSON.stringify(editingCategory)
       });
       
       if (!response.ok) {
@@ -242,12 +216,11 @@ function AdminDashboardPage() {
     setIsLoading(true);
     
     try {
-      const formData = new FormData();      formData.append('name', productForm.name);
+      const formData = new FormData();
+      formData.append('name', productForm.name);
       formData.append('description', productForm.description);
       formData.append('price', productForm.price);
       formData.append('category', productForm.category);
-      formData.append('subcategory', productForm.subcategory || '');
-      formData.append('condition', productForm.condition);
       
       if (productForm.images) {
         for (let i = 0; i < productForm.images.length; i++) {
@@ -282,7 +255,6 @@ function AdminDashboardPage() {
         description: '',
         price: '',
         category: '',
-        condition: '',
         images: []
       });
       setEditingProduct(null);
@@ -547,7 +519,7 @@ function AdminDashboardPage() {
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                   <h3 className="text-gray-500 text-sm font-medium">Total Revenue</h3>
-                  <p className="text-3xl font-bold text-gray-800">{formatCurrency(Number(calculateTotalRevenue()))}</p>
+                  <p className="text-3xl font-bold text-gray-800">₦{calculateTotalRevenue()}</p>
                   <div className="mt-2 text-xs text-blue-600">
                     {calculateTotalTransactions()} Total Transactions
                   </div>
@@ -597,7 +569,7 @@ function AdminDashboardPage() {
                             <p className="text-sm text-gray-500">Product added</p>
                           </div>
                         </div>
-                        <div className="text-sm text-gray-500">{formatCurrency(Number(product.price))}</div>
+                        <div className="text-sm text-gray-500">₦{product.price}</div>
                       </div>
                     ))
                   ) : (
@@ -666,14 +638,9 @@ function AdminDashboardPage() {
                               </th>
                               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Price
-                              </th>                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              </th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Category
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Subcategory
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Condition
                               </th>
                               <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Actions
@@ -698,23 +665,13 @@ function AdminDashboardPage() {
                                       <div className="text-sm font-medium text-gray-900">{product.name}</div>
                                     </div>
                                   </div>
-                                </td>                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm text-gray-900">{formatCurrency(Number(product.price))}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">₦{product.price}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                     {product.category?.name || 'Uncategorized'}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                    {product.subcategory || 'None'}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    ${product.condition === 'new' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                    {product.condition === 'new' ? 'New' : 'Pre-owned'}
                                   </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -789,68 +746,22 @@ function AdminDashboardPage() {
                           className="w-full p-2 border border-gray-300 rounded"
                           required
                         />
-                      </div>                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Category
-                          </label>
-                          <select
-                            name="category"
-                            value={productForm.category}
-                            onChange={(e) => {
-                              const categoryId = e.target.value;
-                              setProductForm(prev => ({
-                                ...prev,
-                                category: categoryId,
-                                subcategory: '' // Reset subcategory when category changes
-                              }));
-                            }}
-                            className="w-full p-2 border border-gray-300 rounded"
-                            required
-                          >
-                            <option value="">Select Category</option>
-                            {categories && categories.map(cat => (
-                              <option key={cat._id} value={cat._id}>{cat.name}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {productForm.category && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Subcategory
-                            </label>
-                            <select
-                              name="subcategory"
-                              value={productForm.subcategory}
-                              onChange={handleProductChange}
-                              className="w-full p-2 border border-gray-300 rounded"
-                            >
-                              <option value="">Select Subcategory</option>
-                              {categories
-                                .find(cat => cat._id === productForm.category)
-                                ?.subcategories.map((sub, idx) => (
-                                  <option key={idx} value={sub.name}>{sub.name}</option>
-                                ))}
-                            </select>
-                          </div>
-                        )}
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Condition
+                          Category
                         </label>
                         <select
-                          name="condition"
-                          value={productForm.condition}
+                          name="category"
+                          value={productForm.category}
                           onChange={handleProductChange}
                           className="w-full p-2 border border-gray-300 rounded"
                           required
                         >
-                          <option value="">Select Condition</option>
-                          <option value="new">New</option>
-                          <option value="used">Pre-owned</option>
+                          <option value="">Select Category</option>
+                          {categories && categories.map(cat => (
+                            <option key={cat._id} value={cat._id}>{cat.name}</option>
+                          ))}
                         </select>
                       </div>
                       <div>
@@ -1010,7 +921,9 @@ function AdminDashboardPage() {
               {categorySubSection === 'add' && (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                   <div className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Add New Category</h3>
+                    <h3 className="text-lg font-semibold mb-4">
+                      Add New Category
+                    </h3>
                     <form onSubmit={handleAddCategory}>
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1024,7 +937,8 @@ function AdminDashboardPage() {
                           className="w-full p-2 border border-gray-300 rounded"
                           required
                         />
-                      </div>                      <div className="mb-4">
+                      </div>
+                      <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Description
                         </label>
@@ -1036,61 +950,6 @@ function AdminDashboardPage() {
                           rows="3"
                           required
                         ></textarea>
-                      </div>
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Category Image
-                        </label>
-                        <input
-                          type="file"
-                          name="image"
-                          accept="image/*"
-                          onChange={handleCategoryChange}
-                          className="w-full p-2 border border-gray-300 rounded"
-                          required
-                        />
-                      </div>
-                      {/* Subcategories UI */}
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Subcategories
-                        </label>
-                        {(newCategory.subcategories || []).map((sub, idx) => (
-                          <div key={idx} className="flex space-x-2 mb-2">
-                            <input
-                              type="text"
-                              placeholder="Subcategory Name"
-                              value={sub.name}
-                              onChange={e => {
-                                const updated = [...(newCategory.subcategories || [])];
-                                updated[idx].name = e.target.value;
-                                setNewCategory({ ...newCategory, subcategories: updated });
-                              }}
-                              className="p-2 border rounded w-1/2"
-                              required
-                            />
-                            <input
-                              type="text"
-                              placeholder="Description (optional)"
-                              value={sub.description || ''}
-                              onChange={e => {
-                                const updated = [...(newCategory.subcategories || [])];
-                                updated[idx].description = e.target.value;
-                                setNewCategory({ ...newCategory, subcategories: updated });
-                              }}
-                              className="p-2 border rounded w-1/2"
-                            />
-                            <button type="button" onClick={() => {
-                              const updated = [...(newCategory.subcategories || [])];
-                              updated.splice(idx, 1);
-                              setNewCategory({ ...newCategory, subcategories: updated });
-                            }} className="text-red-500 px-2">Remove</button>
-                          </div>
-                        ))}
-                        <button type="button" onClick={() => setNewCategory({
-                          ...newCategory,
-                          subcategories: [...(newCategory.subcategories || []), { name: '', description: '' }]
-                        })} className="text-blue-500 mt-2">+ Add Subcategory</button>
                       </div>
                       <div className="flex justify-end">
                         <button
@@ -1117,7 +976,9 @@ function AdminDashboardPage() {
               {categorySubSection === 'edit' && editingCategory && (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                   <div className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Edit Category</h3>
+                    <h3 className="text-lg font-semibold mb-4">
+                      Edit Category
+                    </h3>
                     <form onSubmit={handleUpdateCategory}>
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1131,7 +992,8 @@ function AdminDashboardPage() {
                           className="w-full p-2 border border-gray-300 rounded"
                           required
                         />
-                      </div>                      <div className="mb-4">
+                      </div>
+                      <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Description
                         </label>
@@ -1143,68 +1005,6 @@ function AdminDashboardPage() {
                           rows="3"
                           required
                         ></textarea>
-                      </div>
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Category Image {!editingCategory.image && "(Required)"}
-                        </label>
-                        <input
-                          type="file"
-                          name="image"
-                          accept="image/*"
-                          onChange={handleCategoryChange}
-                          className="w-full p-2 border border-gray-300 rounded"
-                          required={!editingCategory.image}
-                        />
-                        {editingCategory.image && (
-                          <div className="mt-2">
-                            <p className="text-sm text-gray-500 mb-1">Current Image:</p>
-                            <img src={editingCategory.image} alt={editingCategory.name} className="h-24 w-24 object-cover rounded" />
-                            <p className="text-xs text-gray-500 mt-1">Upload a new image to replace the current one</p>
-                          </div>
-                        )}
-                      </div>
-                      {/* Subcategories UI */}
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Subcategories
-                        </label>
-                        {(editingCategory.subcategories || []).map((sub, idx) => (
-                          <div key={idx} className="flex space-x-2 mb-2">
-                            <input
-                              type="text"
-                              placeholder="Subcategory Name"
-                              value={sub.name}
-                              onChange={e => {
-                                const updated = [...(editingCategory.subcategories || [])];
-                                updated[idx].name = e.target.value;
-                                setEditingCategory({ ...editingCategory, subcategories: updated });
-                              }}
-                              className="p-2 border rounded w-1/2"
-                              required
-                            />
-                            <input
-                              type="text"
-                              placeholder="Description (optional)"
-                              value={sub.description || ''}
-                              onChange={e => {
-                                const updated = [...(editingCategory.subcategories || [])];
-                                updated[idx].description = e.target.value;
-                                setEditingCategory({ ...editingCategory, subcategories: updated });
-                              }}
-                              className="p-2 border rounded w-1/2"
-                            />
-                            <button type="button" onClick={() => {
-                              const updated = [...(editingCategory.subcategories || [])];
-                              updated.splice(idx, 1);
-                              setEditingCategory({ ...editingCategory, subcategories: updated });
-                            }} className="text-red-500 px-2">Remove</button>
-                          </div>
-                        ))}
-                        <button type="button" onClick={() => setEditingCategory({
-                          ...editingCategory,
-                          subcategories: [...(editingCategory.subcategories || []), { name: '', description: '' }]
-                        })} className="text-blue-500 mt-2">+ Add Subcategory</button>
                       </div>
                       <div className="flex justify-end">
                         <button

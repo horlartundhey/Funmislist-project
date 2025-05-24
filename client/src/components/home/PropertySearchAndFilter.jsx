@@ -1,32 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { FaSearch, FaSlidersH } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const PropertySearchAndFilter = ({ onSearch }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedSubcategory, setSelectedSubcategory] = useState('');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [locationTerm, setLocationTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const { categories } = useSelector((state) => state.categories);
+  
+  const { allCategories: categories } = useSelector((state) => state.categories);
+  
+  // Find the Real Estate category
+  const realEstateCategory = categories?.find(cat => 
+    cat.name.toLowerCase() === 'real estate'
+  );
+  
+  const availableSubcategories = realEstateCategory?.subcategories || [];
 
-  // Get real estate category
-  const realEstateCategory = categories?.find(cat => cat.name.toLowerCase() === 'real estate');
+  // Set Real Estate category by default
+  useEffect(() => {
+    if (realEstateCategory && !selectedCategory) {
+      setSelectedCategory(realEstateCategory._id);
+      onSearch({
+        searchTerm: '',
+        category: realEstateCategory._id,
+        subcategory: '',
+        priceRange: { min: '', max: '' },
+        location: ''
+      });
+    }
+  }, [realEstateCategory, onSearch]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // Parse combined "term in location" syntax
     let term = searchTerm;
     let loc = locationTerm;
-    const inMatch = searchTerm.match(/(.+?)\\s+in\\s+(.+)/i);
+    const inMatch = searchTerm.match(/(.+?)\s+in\s+(.+)/i);
     if (inMatch) {
       term = inMatch[1].trim();
       loc = inMatch[2].trim();
     }
+
     onSearch({
       searchTerm: term,
-      category: realEstateCategory?._id, // Always use real estate category
+      category: selectedCategory,
       subcategory: selectedSubcategory,
       priceRange,
       location: loc
@@ -35,15 +56,18 @@ const PropertySearchAndFilter = ({ onSearch }) => {
 
   const handleReset = () => {
     setSearchTerm('');
+    if (realEstateCategory) {
+      setSelectedCategory(realEstateCategory._id);
+    }
     setSelectedSubcategory('');
     setPriceRange({ min: '', max: '' });
     setLocationTerm('');
-    onSearch({ 
-      searchTerm: '', 
-      category: realEstateCategory?._id,
+    onSearch({
+      searchTerm: '',
+      category: realEstateCategory?._id || '',
       subcategory: '',
-      priceRange: { min: '', max: '' }, 
-      location: '' 
+      priceRange: { min: '', max: '' },
+      location: ''
     });
     setShowFilters(false);
   };
@@ -51,10 +75,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100">
       <form onSubmit={handleSubmit} className="p-4">
-        <motion.div 
-          initial={false}
-          className="flex flex-wrap gap-3"
-        >
+        <motion.div initial={false} className="flex flex-wrap gap-3">
           <div className="flex-1 min-w-[200px]">
             <div className="relative">
               <input
@@ -62,7 +83,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
                 placeholder="Search properties..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
               />
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
@@ -97,32 +118,46 @@ const PropertySearchAndFilter = ({ onSearch }) => {
               className="overflow-hidden"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
-                {/* Property Type (Subcategory) */}
+                {/* Subcategory Filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Property Type
                   </label>
                   <select
                     value={selectedSubcategory}
-                    onChange={(e) => setSelectedSubcategory(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSelectedSubcategory(value);
+                      onSearch({ 
+                        searchTerm, 
+                        category: selectedCategory, 
+                        subcategory: value,
+                        priceRange,
+                        location: locationTerm
+                      });
+                    }}
+                    className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-red-500 focus:ring-1 focus:ring-red-500"
                   >
                     <option value="">All Property Types</option>
-                    {(realEstateCategory?.subcategories || []).map((sub, idx) => (
-                      <option key={idx} value={sub.name}>{sub.name}</option>
+                    {availableSubcategories.map((sub) => (
+                      <option key={sub.name} value={sub.name}>
+                        {sub.name}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 {/* Location Filter */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Location
+                  </label>
                   <input
                     type="text"
-                    placeholder="City or Address"
+                    placeholder="City, State, or Address"
                     value={locationTerm}
                     onChange={(e) => setLocationTerm(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-red-500 focus:ring-1 focus:ring-red-500"
                   />
                 </div>
 
@@ -136,7 +171,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
                     placeholder="Min Price"
                     value={priceRange.min}
                     onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
-                    className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-red-500 focus:ring-1 focus:ring-red-500"
                     min="0"
                   />
                 </div>
@@ -150,7 +185,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
                     placeholder="Max Price"
                     value={priceRange.max}
                     onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
-                    className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-red-500 focus:ring-1 focus:ring-red-500"
                     min="0"
                   />
                 </div>

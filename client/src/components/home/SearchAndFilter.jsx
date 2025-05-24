@@ -9,15 +9,13 @@ const SearchAndFilter = ({ onSearch }) => {
   const [selectedSubcategory, setSelectedSubcategory] = useState('');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [locationTerm, setLocationTerm] = useState('');
+  const [selectedCondition, setSelectedCondition] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const { categories } = useSelector((state) => state.categories);
-  
-  // Get subcategories for selected category
-  const selectedCategoryObj = categories?.find(cat => 
-    cat.name.toLowerCase().replace(/\s+/g, '-') === selectedCategory
-  );
+  const { filteredCategories: categories } = useSelector((state) => state.categories);
+  // Filter out Real Estate category from general search
+  const filteredCategories = categories?.filter(cat => cat.name.toLowerCase() !== 'real estate') || [];
+  const selectedCategoryObj = filteredCategories?.find(cat => cat._id === selectedCategory);
   const availableSubcategories = selectedCategoryObj?.subcategories || [];
-
   const handleSubmit = (e) => {
     e.preventDefault();
     // Parse combined "term in location" syntax
@@ -31,40 +29,28 @@ const SearchAndFilter = ({ onSearch }) => {
     onSearch({
       searchTerm: term,
       category: selectedCategory,
-      subcategory: selectedSubcategory?.toLowerCase().replace(/\s+/g, '-'),
+      subcategory: selectedSubcategory,
       priceRange,
-      location: loc
+      location: loc,
+      condition: selectedCondition
     });
   };
-
   const handleReset = () => {
     setSearchTerm('');
     setSelectedCategory('');
     setSelectedSubcategory('');
     setPriceRange({ min: '', max: '' });
     setLocationTerm('');
-    onSearch({ 
-      searchTerm: '', 
-      category: '', 
+    setSelectedCondition('');
+    onSearch({
+      searchTerm: '',
+      category: '',
       subcategory: '',
-      priceRange: { min: '', max: '' }, 
-      location: '' 
+      priceRange: { min: '', max: '' },
+      location: '',
+      condition: ''
     });
     setShowFilters(false);
-  };
-  
-  // Handle category change
-  const handleCategoryChange = (e) => {
-    const value = e.target.value;
-    setSelectedCategory(value);
-    setSelectedSubcategory(''); // Reset subcategory when category changes
-    onSearch({
-      searchTerm,
-      category: value,
-      subcategory: '',
-      priceRange,
-      location: locationTerm
-    });
   };
 
   return (
@@ -105,6 +91,22 @@ const SearchAndFilter = ({ onSearch }) => {
             Search
           </motion.button>
         </motion.div>
+          <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="mt-4 flex justify-end"
+              >
+                <motion.button
+                  type="button"
+                  onClick={handleReset}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Reset Filters
+                </motion.button>
+          </motion.div>
 
         <AnimatePresence>
           {showFilters && (
@@ -114,25 +116,30 @@ const SearchAndFilter = ({ onSearch }) => {
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
-            >              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
+            >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
+                {/* Category Filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Category
                   </label>
                   <select
                     value={selectedCategory}
-                    onChange={handleCategoryChange}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSelectedCategory(value);
+                      setSelectedSubcategory('');
+                      onSearch({ searchTerm, category: value, subcategory: '', priceRange, location: locationTerm });
+                    }}
                     className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   >
-                    <option value="">All Categories</option>
-                    {categories?.map((category) => (
-                      <option key={category._id} value={category.name.toLowerCase().replace(/\s+/g, '-')}>
-                        {category.name}
-                      </option>
+                    <option value="">All Categories</option>                    {categories?.map((category) => (
+                      <option key={category._id} value={category._id}>{category.name}</option>
                     ))}
                   </select>
                 </div>
 
+                {/* Subcategory Filter */}
                 {selectedCategory && availableSubcategories.length > 0 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -141,23 +148,15 @@ const SearchAndFilter = ({ onSearch }) => {
                     <select
                       value={selectedSubcategory}
                       onChange={(e) => {
-                        const subValue = e.target.value;
-                        setSelectedSubcategory(subValue);
-                        onSearch({
-                          searchTerm,
-                          category: selectedCategory,
-                          subcategory: subValue.toLowerCase().replace(/\s+/g, '-'),
-                          priceRange,
-                          location: locationTerm
-                        });
+                        const sub = e.target.value;
+                        setSelectedSubcategory(sub);
+                        onSearch({ searchTerm, category: selectedCategory, subcategory: sub, priceRange, location: locationTerm });
                       }}
                       className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                     >
                       <option value="">All Subcategories</option>
-                      {availableSubcategories.map((sub, idx) => (
-                        <option key={idx} value={sub.name}>
-                          {sub.name}
-                        </option>
+                      {availableSubcategories.map((sub) => (
+                        <option key={sub.name} value={sub.name}>{sub.name}</option>
                       ))}
                     </select>
                   </div>
@@ -191,8 +190,7 @@ const SearchAndFilter = ({ onSearch }) => {
                   />
                 </div>
 
-                {/* Location Filter */}
-                <div>
+                {/* Location Filter */}                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                   <input
                     type="text"
@@ -202,24 +200,36 @@ const SearchAndFilter = ({ onSearch }) => {
                     className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
+
+                {/* Condition Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Condition
+                  </label>
+                  <select
+                    value={selectedCondition}
+                    onChange={(e) => {
+                      const condition = e.target.value;
+                      setSelectedCondition(condition);
+                      onSearch({ 
+                        searchTerm, 
+                        category: selectedCategory, 
+                        subcategory: selectedSubcategory, 
+                        priceRange, 
+                        location: locationTerm,
+                        condition
+                      });
+                    }}
+                    className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="">Any Condition</option>
+                    <option value="new">New</option>
+                    <option value="pre-owned">Pre-owned</option>
+                  </select>
+                </div>
               </div>
 
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="mt-4 flex justify-end"
-              >
-                <motion.button
-                  type="button"
-                  onClick={handleReset}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Reset Filters
-                </motion.button>
-              </motion.div>
+              
             </motion.div>
           )}
         </AnimatePresence>

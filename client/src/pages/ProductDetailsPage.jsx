@@ -84,11 +84,10 @@ const ProductDetailsPage = () => {
             <p><span className="font-semibold">Address:</span> {currentProduct.location?.address}</p>
             <p><span className="font-semibold">City:</span> {currentProduct.location?.city}</p>
             <p><span className="font-semibold">State:</span> {currentProduct.location?.state}</p>
-            <p><span className="font-semibold">Zip Code:</span> {currentProduct.location?.zipCode}</p>
-          </div>
+            <p><span className="font-semibold">Zip Code:</span> {currentProduct.location?.zipCode}</p>          </div>
           <div className="space-y-2">
             <p><span className="font-semibold">Category:</span> {currentProduct.category.name}</p>
-            <p><span className="font-semibold">Condition:</span> {currentProduct.condition}</p>
+            <p><span className="font-semibold">Condition:</span> {currentProduct.condition === 'pre-owned' ? 'Pre-owned' : 'New'}</p>
           </div>
           <button
             onClick={handleAddToCart}

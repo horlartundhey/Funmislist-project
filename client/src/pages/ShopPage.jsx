@@ -19,13 +19,11 @@ function ShopPage() {
   useEffect(() => {
     setFilteredProducts(products);
   }, [products]);
-
   // filter handler
-  const handleSearch = ({ searchTerm, category, subcategory, priceRange, location }) => {
+  const handleSearch = ({ searchTerm, category, priceRange, location, condition }) => {
     let temp = products;
     if (searchTerm) temp = temp.filter(p => p.name?.toLowerCase().includes(searchTerm.toLowerCase()));
     if (category) temp = temp.filter(p => p.category === category || p.category?._id === category);
-    if (subcategory) temp = temp.filter(p => p.subcategory === subcategory);
     if (priceRange.min) temp = temp.filter(p => p.price >= Number(priceRange.min));
     if (priceRange.max) temp = temp.filter(p => p.price <= Number(priceRange.max));
     if (location) {
@@ -35,6 +33,7 @@ function ShopPage() {
         p.location?.address?.toLowerCase().includes(locLower)
       );
     }
+    if (condition) temp = temp.filter(p => p.condition === condition);
     setFilteredProducts(temp);
   };
 

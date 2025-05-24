@@ -2,20 +2,22 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
-  async ({ category } = {}, { rejectWithValue }) => {
+  async ({ category, subcategory, condition } = {}, { rejectWithValue }) => {
     try {
-      // fetch all products then filter by category slug if provided
-      const response = await fetch('https://funmislist-project.vercel.app/api/products');
+      let url = 'https://funmislist-project.vercel.app/api/products';
+      const params = new URLSearchParams();
+      if (category) params.append('category', category);
+      if (subcategory) params.append('subcategory', subcategory);
+      if (condition) params.append('condition', condition);
+      console.log(`Fetching products with params: category=${category}, subcategory=${subcategory}, condition=${condition}`);
+      if (params.toString()) url += '?' + params.toString();
+      
+      const response = await fetch(url);
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.message || 'Failed to fetch products');
       }
       const data = await response.json();
-      if (category) {
-        return data.filter(p => 
-          p.category?.name.toLowerCase().replace(/\s+/g, '-') === category
-        );
-      }
       return data;
     } catch (error) {
       return rejectWithValue(error.message);

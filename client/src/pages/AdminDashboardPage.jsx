@@ -20,7 +20,8 @@ ChartJS.register(
   Legend
 );
 
-import formatCurrency from '../utils/formatCurrency'; // Use shared currency formatter
+// Format currency helper
+const formatCurrency = (amount) => `₦${amount.toLocaleString()}`;
 
 // Format date helper
 const formatDate = (date) => {
@@ -41,18 +42,17 @@ function AdminDashboardPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [properties, setProperties] = useState([]);
-  const [transactions, setTransactions] = useState([]);  const [newProduct, setNewProduct] = useState({ 
-    name: '', price: '', category: '', condition: 'new',
+  const [transactions, setTransactions] = useState([]);
+  const [newProduct, setNewProduct] = useState({ 
+    name: '', price: '', category: '', subcategory: '', condition: 'new',
     description: '', stock: '', images: [], 
     address: '', city: '', state: '', zipCode: ''
   });
   const [editingProduct, setEditingProduct] = useState(null);
-  const [viewingProduct, setViewingProduct] = useState(null);  const [newCategory, setNewCategory] = useState({ 
-    name: '', 
-    description: '', 
-    subcategories: [],
-    image: null 
-  });
+  const [viewingProduct, setViewingProduct] = useState(null);
+  const [newCategory, setNewCategory] = useState('');
+  const [newCategoryDesc, setNewCategoryDesc] = useState('');
+  const [newCategoryImage, setNewCategoryImage] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
@@ -215,15 +215,22 @@ function AdminDashboardPage() {
       chartData,
       pieData
     };
-  }, [transactions]);
-
-  const handleAddProduct = useCallback(async (e) => {
+  }, [transactions]);  const handleAddProduct = useCallback(async (e) => {
     e.preventDefault();
     setLoadingAddProduct(true);
     const formData = new FormData();
     formData.append('name', newProduct.name);
     formData.append('price', newProduct.price);
     formData.append('category', newProduct.category);
+    
+    // Only add subcategory if it has a value
+    if (newProduct.subcategory) {
+      formData.append('subcategory', newProduct.subcategory);
+      console.log('Adding subcategory to form data:', newProduct.subcategory);
+    } else {
+      console.log('No subcategory value to add');
+    }
+    
     formData.append('condition', newProduct.condition);
     formData.append('description', newProduct.description);
     formData.append('stock', newProduct.stock);
@@ -252,7 +259,7 @@ function AdminDashboardPage() {
       if (response.ok) {
         fetchProducts();
         setNewProduct({ 
-          name: '', price: '', category: '', condition: 'new',
+          name: '', price: '', category: '', subcategory: '', condition: 'new',
           description: '', stock: '', images: [], 
           address: '', city: '', state: '', zipCode: ''
         });
@@ -266,15 +273,22 @@ function AdminDashboardPage() {
     } finally {
       setLoadingAddProduct(false);
     }
-  }, [token, newProduct, fetchProducts]);
-
-  const handleEditProduct = useCallback(async (e) => {
+  }, [token, newProduct, fetchProducts]);  const handleEditProduct = useCallback(async (e) => {
     e.preventDefault();
     setLoadingEditProduct(true);
     const formData = new FormData();
     formData.append('name', editingProduct.name);
     formData.append('price', editingProduct.price);
     formData.append('category', editingProduct.category);
+    
+    // Only add subcategory if it has a value
+    if (editingProduct.subcategory) {
+      formData.append('subcategory', editingProduct.subcategory);
+      console.log('Adding subcategory to form data for edit:', editingProduct.subcategory);
+    } else {
+      console.log('No subcategory value to add for edit');
+    }
+    
     formData.append('condition', editingProduct.condition);
     formData.append('description', editingProduct.description);
     formData.append('stock', editingProduct.stock);
@@ -336,22 +350,20 @@ function AdminDashboardPage() {
       setLoadingDeleteProduct(null);
     }
   }, [token, setProducts]);
-
   const handleViewProduct = useCallback((product) => {
+    console.log('Viewing product with subcategory:', product.subcategory);
     setViewingProduct(product);
-  }, []);  const handleAddCategory = useCallback(async (e) => {
+  }, []);
+
+  const handleAddCategory = useCallback(async (e) => {
     e.preventDefault();
     setLoadingAddCategory(true);
     try {
-      // Validate subcategories - filter out empty ones
-      const validSubcategories = (newCategory.subcategories || []).filter(sub => sub.name.trim());
-
       const formData = new FormData();
-      formData.append('name', newCategory.name);
-      formData.append('description', newCategory.description);
-      formData.append('subcategories', JSON.stringify(validSubcategories));
-      if (newCategory.image) {
-        formData.append('image', newCategory.image);
+      formData.append('name', newCategory);
+      formData.append('description', newCategoryDesc);
+      if (newCategoryImage) {
+        formData.append('image', newCategoryImage);
       }
 
       const response = await fetch('https://funmislist-project.vercel.app/api/categories', {
@@ -364,12 +376,9 @@ function AdminDashboardPage() {
       
       if (response.ok) {
         fetchCategories();
-        setNewCategory({ 
-          name: '', 
-          description: '', 
-          subcategories: [],
-          image: null 
-        });
+        setNewCategory('');
+        setNewCategoryDesc('');
+        setNewCategoryImage(null);
         toast.success('Category added successfully');
       } else {
         toast.error('Error adding category');
@@ -380,17 +389,15 @@ function AdminDashboardPage() {
     } finally {
       setLoadingAddCategory(false);
     }
-  }, [token, newCategory, fetchCategories]);  const handleEditCategory = useCallback(async (e) => {
+  }, [token, newCategory, newCategoryDesc, newCategoryImage, fetchCategories]);
+
+  const handleEditCategory = useCallback(async (e) => {
     e.preventDefault();
     setLoadingEditCategory(true);
     try {
-      // Validate subcategories - filter out empty ones
-      const validSubcategories = (editingCategory.subcategories || []).filter(sub => sub.name.trim());
-
       const formData = new FormData();
       formData.append('name', editingCategory.name);
       formData.append('description', editingCategory.description || '');
-      formData.append('subcategories', JSON.stringify(validSubcategories));
       if (editingCategory.newImage) {
         formData.append('image', editingCategory.newImage);
       }
@@ -491,14 +498,19 @@ function AdminDashboardPage() {
     } else {
       // Called from PropertyForm (preferred)
       formValues = formOrEvent;
-    }
-    setLoadingAddProperty(true);
+    }    setLoadingAddProperty(true);
     try {
       const formData = new FormData();
       formData.append('title', formValues.title);
       formData.append('description', formValues.description);
       formData.append('price', formValues.price);
       formData.append('category', formValues.category);
+      
+      // Add subcategory if provided
+      if (formValues.subcategory) {
+        formData.append('subcategory', formValues.subcategory);
+      }
+      
       formData.append('location', JSON.stringify({
         address: formValues.address,
         city: formValues.city,
@@ -535,22 +547,57 @@ function AdminDashboardPage() {
     } finally {
       setLoadingAddProperty(false);
     }
-  }, [token, newProperty, fetchProperties]);
-
-  const handleEditProperty = useCallback(async (e) => {
-    e.preventDefault();
+  }, [token, newProperty, fetchProperties]);  const handleEditProperty = useCallback(async (formOrEvent) => {
+    let formValues;
+    if (formOrEvent && formOrEvent.preventDefault) {
+      // Called from form submit event (legacy)
+      formOrEvent.preventDefault();
+      formValues = editingProperty;
+    } else {
+      // Called from PropertyForm (preferred)
+      formValues = formOrEvent;
+    }
+    
     setLoadingEditProperty(true);
-    try {
-      const formData = new FormData();
-      formData.append('title', editingProperty.title);
-      formData.append('description', editingProperty.description);
-      formData.append('price', editingProperty.price);
-      formData.append('category', editingProperty.category);
-      formData.append('location', JSON.stringify(editingProperty.location));
-      formData.append('availableTimeSlots', editingProperty.availableTimeSlots);
+    try {      
+      const formData = new FormData();      // Basic validation
+      if (!formValues.title || !formValues.description || !formValues.price || !formValues.category) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
+      formData.append('title', formValues.title);
+      formData.append('description', formValues.description);
+      formData.append('price', formValues.price);
+      formData.append('category', formValues.category);
       
-      if (editingProperty.newImages?.length > 0) {
-        Array.from(editingProperty.newImages).forEach(image => {
+      // Handle subcategory
+      if (formValues.subcategory) {
+        // Verify subcategory is valid for the category
+        const categoryObj = categories.find(cat => cat._id === formValues.category);
+        if (!categoryObj?.subcategories?.some(sub => sub.name === formValues.subcategory)) {
+          toast.error('Invalid subcategory for selected category');
+          return;
+        }
+        formData.append('subcategory', formValues.subcategory);
+      }
+      
+      formData.append('location', JSON.stringify(formValues.location));
+      
+      // Handle availableTimeSlots based on the format we receive
+      const timeSlots = typeof formValues.availableTimeSlots === 'string'
+        ? JSON.parse(formValues.availableTimeSlots)
+        : formValues.availableTimeSlots;
+
+      if (!Array.isArray(timeSlots) || timeSlots.length === 0) {
+        toast.error('Please add at least one time slot');
+        return;
+      }
+
+      formData.append('availableTimeSlots', JSON.stringify(timeSlots));
+      
+      if (formValues.images?.length > 0) {
+        Array.from(formValues.images).forEach(image => {
           formData.append('images', image);
         });
       }
@@ -605,25 +652,90 @@ function AdminDashboardPage() {
   const handleViewProperty = useCallback((property) => {
     setViewingProperty(property);
   }, []);
-  
-  // Handle add/edit property modal
+    // Handle add/edit property modal
   const handlePropertyModal = useCallback((property = null) => {
     if (property) {
       // For editing, pre-fill the form
       setEditingProperty({
         ...property,
+        subcategory: property.subcategory || '',
         availableTimeSlots: JSON.stringify(property.availableTimeSlots || [], null, 2)
       });
     } else {
       // For adding new property, reset the form
       setEditingProperty(null);
       setNewProperty({
-        title: '', description: '', price: '', category: '',
+        title: '', description: '', price: '', category: '', subcategory: '',
         images: [], location: { address: '', city: '', state: '', zipCode: '' },
         availableTimeSlots: JSON.stringify([])
       });
     }
   }, []);
+
+  // Subcategory handlers
+  const handleAddSubcategory = useCallback(async (categoryId, name) => {
+    if (!name) return;
+    try {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${categoryId}/subcategories`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ name })
+      });
+      if (response.ok) {
+        fetchCategories();
+        toast.success('Subcategory added successfully');
+      } else {
+        toast.error('Error adding subcategory');
+      }
+    } catch (error) {
+      console.error('Error adding subcategory:', error);
+      toast.error('Error adding subcategory');
+    }
+  }, [token, fetchCategories]);
+
+  const handleEditSubcategory = useCallback(async (categoryId, subId, name) => {
+    if (!name) return;
+    try {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${categoryId}/subcategories/${subId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ name })
+      });
+      if (response.ok) {
+        fetchCategories();
+        toast.success('Subcategory updated successfully');
+      } else {
+        toast.error('Error updating subcategory');
+      }
+    } catch (error) {
+      console.error('Error updating subcategory:', error);
+      toast.error('Error updating subcategory');
+    }
+  }, [token, fetchCategories]);
+
+  const handleDeleteSubcategory = useCallback(async (categoryId, subId) => {
+    try {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${categoryId}/subcategories/${subId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        fetchCategories();
+        toast.success('Subcategory deleted successfully');
+      } else {
+        toast.error('Error deleting subcategory');
+      }
+    } catch (error) {
+      console.error('Error deleting subcategory:', error);
+      toast.error('Error deleting subcategory');
+    }
+  }, [token, fetchCategories]);
 
   // Initialize data and setup section-specific data fetching
   useEffect(() => {
@@ -911,20 +1023,21 @@ function AdminDashboardPage() {
           {activeSection === 'categories' && (
             <section className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="p-6">
-                {/* Add Category Form */}                <form onSubmit={handleAddCategory} className="mb-6 space-y-4">
+                {/* Add Category Form */}
+                <form onSubmit={handleAddCategory} className="mb-6 space-y-4">
                   <h3 className="text-lg font-semibold mb-4">Add New Category</h3>
                   <input
                     type="text"
                     placeholder="Category Name"
-                    value={newCategory.name}
-                    onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
                     className="p-2 border rounded w-full"
                     required
                   />
                   <textarea
                     placeholder="Category Description"
-                    value={newCategory.description}
-                    onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
+                    value={newCategoryDesc}
+                    onChange={(e) => setNewCategoryDesc(e.target.value)}
                     className="p-2 border rounded w-full"
                   />
                   <div>
@@ -932,62 +1045,9 @@ function AdminDashboardPage() {
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setNewCategory({...newCategory, image: e.target.files[0]})}
+                      onChange={(e) => setNewCategoryImage(e.target.files[0])}
                       className="p-2 border rounded w-full"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-2">Subcategories</label>
-                    <div className="space-y-2">
-                      {(newCategory.subcategories || []).map((sub, idx) => (
-                        <div key={idx} className="flex space-x-2">
-                          <input
-                            type="text"
-                            placeholder="Subcategory Name"
-                            value={sub.name}
-                            onChange={(e) => {
-                              const updatedSubs = [...newCategory.subcategories];
-                              updatedSubs[idx] = { ...sub, name: e.target.value };
-                              setNewCategory({...newCategory, subcategories: updatedSubs});
-                            }}
-                            className="p-2 border rounded flex-1"
-                            required
-                          />
-                          <input
-                            type="text"
-                            placeholder="Description (optional)"
-                            value={sub.description || ''}
-                            onChange={(e) => {
-                              const updatedSubs = [...newCategory.subcategories];
-                              updatedSubs[idx] = { ...sub, description: e.target.value };
-                              setNewCategory({...newCategory, subcategories: updatedSubs});
-                            }}
-                            className="p-2 border rounded flex-1"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updatedSubs = [...newCategory.subcategories];
-                              updatedSubs.splice(idx, 1);
-                              setNewCategory({...newCategory, subcategories: updatedSubs});
-                            }}
-                            className="p-2 text-red-500 hover:text-red-700"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setNewCategory({
-                        ...newCategory,
-                        subcategories: [...(newCategory.subcategories || []), { name: '', description: '' }]
-                      })}
-                      className="mt-2 text-blue-500 hover:text-blue-700"
-                    >
-                      + Add Subcategory
-                    </button>
                   </div>
                   <button
                     type="submit"
@@ -1012,9 +1072,10 @@ function AdminDashboardPage() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold mb-4">Categories</h3>
                   <div className="grid gap-4">
-                    {categories.map((category) => (                      <div key={category._id} className="border rounded-lg p-4 flex justify-between items-start">
-                        <div className="flex-grow">
-                          <div className="flex items-center mb-2">
+                    {categories.map((category) => (
+                      <div key={category._id} className="border rounded-lg p-4 flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center">
                             {category.image && (
                               <img src={category.image} alt={category.name} className="w-12 h-12 object-cover rounded mr-4" />
                             )}
@@ -1023,20 +1084,9 @@ function AdminDashboardPage() {
                               <p className="text-sm text-gray-600">{category.description}</p>
                             </div>
                           </div>
-                          {category.subcategories && category.subcategories.length > 0 && (
-                            <div className="mt-3 pl-16">
-                              <p className="text-sm font-medium text-gray-700 mb-1">Subcategories:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {category.subcategories.map((sub, idx) => (
-                                  <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                    {sub.name}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                         </div>
-                        <div className="flex space-x-2">                          <button
+                        <div className="flex space-x-2">
+                          <button
                             onClick={() => setEditingCategory(category)}
                             className="px-3 py-1 text-yellow-600 hover:text-yellow-700 border border-yellow-600 rounded-md text-sm"
                           >
@@ -1054,6 +1104,38 @@ function AdminDashboardPage() {
                             )}
                           </button>
                         </div>
+
+                        {/* Subcategories Management */}
+                        <div className="mt-4 border-t pt-4 w-full">
+                          <h5 className="font-medium mb-2">Subcategories</h5>
+                          {category.subcategories?.map((sub) => (
+                            <div key={sub._id} className="flex items-center justify-between mb-1">
+                              <span>{sub.name}</span>
+                              <div className="space-x-2">
+                                <button
+                                  onClick={() => {
+                                    const newName = prompt('Edit Subcategory', sub.name);
+                                    if (newName) handleEditSubcategory(category._id, sub._id, newName);
+                                  }}
+                                  className="text-sm text-yellow-600 hover:underline"
+                                >Edit</button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm('Delete this subcategory?')) handleDeleteSubcategory(category._id, sub._id);
+                                  }}
+                                  className="text-sm text-red-500 hover:underline"
+                                >Delete</button>
+                              </div>
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => {
+                              const name = prompt('New Subcategory');
+                              if (name) handleAddSubcategory(category._id, name);
+                            }}
+                            className="text-sm text-blue-600 hover:underline"
+                          >+ Add Subcategory</button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1063,7 +1145,8 @@ function AdminDashboardPage() {
                 {editingCategory && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                      <h3 className="text-lg font-semibold mb-4">Edit Category</h3>                      <form onSubmit={handleEditCategory} className="space-y-4">
+                      <h3 className="text-lg font-semibold mb-4">Edit Category</h3>
+                      <form onSubmit={handleEditCategory} className="space-y-4">
                         <input
                           type="text"
                           placeholder="Category Name"
@@ -1086,59 +1169,6 @@ function AdminDashboardPage() {
                             onChange={(e) => setEditingCategory({ ...editingCategory, newImage: e.target.files[0] })}
                             className="p-2 border rounded w-full"
                           />
-                        </div>
-                        <div>
-                          <label className="block text-sm text-gray-600 mb-2">Subcategories</label>
-                          <div className="space-y-2">
-                            {(editingCategory.subcategories || []).map((sub, idx) => (
-                              <div key={idx} className="flex space-x-2">
-                                <input
-                                  type="text"
-                                  placeholder="Subcategory Name"
-                                  value={sub.name}
-                                  onChange={(e) => {
-                                    const updatedSubs = [...editingCategory.subcategories];
-                                    updatedSubs[idx] = { ...sub, name: e.target.value };
-                                    setEditingCategory({...editingCategory, subcategories: updatedSubs});
-                                  }}
-                                  className="p-2 border rounded flex-1"
-                                  required
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Description (optional)"
-                                  value={sub.description || ''}
-                                  onChange={(e) => {
-                                    const updatedSubs = [...editingCategory.subcategories];
-                                    updatedSubs[idx] = { ...sub, description: e.target.value };
-                                    setEditingCategory({...editingCategory, subcategories: updatedSubs});
-                                  }}
-                                  className="p-2 border rounded flex-1"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const updatedSubs = [...editingCategory.subcategories];
-                                    updatedSubs.splice(idx, 1);
-                                    setEditingCategory({...editingCategory, subcategories: updatedSubs});
-                                  }}
-                                  className="p-2 text-red-500 hover:text-red-700"
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setEditingCategory({
-                              ...editingCategory,
-                              subcategories: [...(editingCategory.subcategories || []), { name: '', description: '' }]
-                            })}
-                            className="mt-2 text-blue-500 hover:text-blue-700"
-                          >
-                            + Add Subcategory
-                          </button>
                         </div>
                         <div className="flex justify-end space-x-4">
                           <button
@@ -1210,10 +1240,10 @@ function AdminDashboardPage() {
                       <>
                         <div className="overflow-x-auto">
                           <table className="w-full">
-                            <thead className="bg-gray-50">
-                              <tr>
+                            <thead className="bg-gray-50">                              <tr>
                                 <th className="px-4 py-3 border-b text-left">Product</th>
                                 <th className="px-4 py-3 border-b text-left">Category</th>
+                                <th className="px-4 py-3 border-b text-left">Subcategory</th>
                                 <th className="px-4 py-3 border-b text-left">Price</th>
                                 <th className="px-4 py-3 border-b text-left">Stock</th>
                                 <th className="px-4 py-3 border-b text-left">Status</th>
@@ -1236,11 +1266,13 @@ function AdminDashboardPage() {
                                         <div className="font-medium">{product.name}</div>
                                         <div className="text-sm text-gray-500">ID: {product._id}</div>
                                       </div>
-                                    </div>
-                                  </td>                                  <td className="px-4 py-3 border-b">
+                                    </div>                                  </td>                                  <td className="px-4 py-3 border-b">
                                     {product.category?.name || 'Unknown'}
                                   </td>
-                                  <td className="px-4 py-3 border-b">{formatCurrency(Number(product.price))}</td>
+                                  <td className="px-4 py-3 border-b">
+                                    {product.subcategory || 'None'}
+                                  </td>
+                                  <td className="px-4 py-3 border-b">{formatCurrency(product.price)}</td>
                                   <td className="px-4 py-3 border-b">{product.stock || 0}</td>                                  <td className="px-4 py-3 border-b">                                    <button
                                       onClick={() => handleTogglePublish(product)}
                                       disabled={loadingPublishToggle === product._id}
@@ -1263,9 +1295,11 @@ function AdminDashboardPage() {
                                       >
                                         View
                                       </button>
-                                      <button
-                                        onClick={() => {
-                                          setEditingProduct(product);
+                                      <button                                        onClick={() => {
+                                          // Ensure the product data is fully loaded with all fields
+                                          const fullProduct = {...product};
+                                          console.log('Setting product for edit:', fullProduct);
+                                          setEditingProduct(fullProduct);
                                           setProductSubSection('add');
                                         }}
                                         className="px-3 py-1 text-yellow-600 hover:text-yellow-700 border border-yellow-600 rounded-md text-sm"
@@ -1360,20 +1394,15 @@ function AdminDashboardPage() {
                         }
                         className="p-2 border rounded w-full h-32"
                         required
-                      />
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      />                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
+                          <label className="block text-sm text-gray-600 mb-2">Category</label>
                           <select
                             value={editingProduct ? editingProduct.category : newProduct.category}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              if (editingProduct) {
-                                setEditingProduct({ ...editingProduct, category: value, subcategory: '' });
-                              } else {
-                                setNewProduct({ ...newProduct, category: value, subcategory: '' });
-                              }
-                            }}
+                            onChange={(e) => editingProduct
+                              ? setEditingProduct({ ...editingProduct, category: e.target.value, subcategory: '' })
+                              : setNewProduct({ ...newProduct, category: e.target.value, subcategory: '' })
+                            }
                             className="p-2 border rounded w-full"
                             required
                           >
@@ -1383,19 +1412,21 @@ function AdminDashboardPage() {
                             ))}
                           </select>
                         </div>
-                        {/* Condition Dropdown */}
                         <div>
+                          <label className="block text-sm text-gray-600 mb-2">Subcategory</label>
                           <select
-                            value={editingProduct ? editingProduct.condition || 'new' : newProduct.condition || 'new'}
+                            value={editingProduct ? editingProduct.subcategory : newProduct.subcategory}
                             onChange={(e) => editingProduct
-                              ? setEditingProduct({ ...editingProduct, condition: e.target.value })
-                              : setNewProduct({ ...newProduct, condition: e.target.value })
-                            }
-                            className="p-2 border rounded w-full"
-                            required
+                              ? setEditingProduct({ ...editingProduct, subcategory: e.target.value })
+                              : setNewProduct({ ...newProduct, subcategory: e.target.value })
+                            }                            className="p-2 border rounded w-full"
                           >
-                            <option value="new">New</option>
-                            <option value="used">Pre-owned</option>
+                            <option value="">Select Subcategory</option>
+                            {categories
+                              .find(cat => cat._id === (editingProduct?.category || newProduct.category))
+                              ?.subcategories?.map((sub, idx) => (
+                                <option key={idx} value={sub.name}>{sub.name}</option>
+                            )) || <option disabled>Select a category first</option>}
                           </select>
                         </div>
                       </div>
@@ -1415,6 +1446,24 @@ function AdminDashboardPage() {
                           />
                         </div>
                         <div>
+                          <label className="block text-sm text-gray-600 mb-2">Condition</label>
+                          <select
+                            value={editingProduct ? editingProduct.condition : newProduct.condition}
+                            onChange={(e) => editingProduct
+                              ? setEditingProduct({ ...editingProduct, condition: e.target.value })
+                              : setNewProduct({ ...newProduct, condition: e.target.value })
+                            }
+                            className="p-2 border rounded w-full"
+                            required
+                          >
+                            <option value="new">New</option>
+                            <option value="pre-owned">Pre-owned</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
                           <input
                             type="text"
                             placeholder="Address"
@@ -1427,9 +1476,6 @@ function AdminDashboardPage() {
                             required
                           />
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <input
                             type="text"
@@ -1491,11 +1537,10 @@ function AdminDashboardPage() {
                       <div className="flex justify-end space-x-4">
                         <button
                           type="button"
-                          onClick={() => {
-                            setProductSubSection('view');
+                          onClick={() => {                            setProductSubSection('view');
                             setEditingProduct(null);
                             setNewProduct({
-                              name: '', price: '', category: '', condition: 'new',
+                              name: '', price: '', category: '', subcategory: '', condition: 'new',
                               description: '', stock: '', images: [],
                               address: '', city: '', state: '', zipCode: ''
                             });
@@ -1566,10 +1611,10 @@ function AdminDashboardPage() {
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead className="bg-gray-50">
-                          <tr>
+                        <thead className="bg-gray-50">                          <tr>
                             <th className="px-4 py-3 border-b text-left">Property</th>
                             <th className="px-4 py-3 border-b text-left">Category</th>
+                            <th className="px-4 py-3 border-b text-left">Subcategory</th>
                             <th className="px-4 py-3 border-b text-left">Price</th>
                             <th className="px-4 py-3 border-b text-left">Location</th>
                             <th className="px-4 py-3 border-b text-left">Actions</th>
@@ -1592,9 +1637,11 @@ function AdminDashboardPage() {
                                     <div className="text-sm text-gray-500">ID: {property._id}</div>
                                   </div>
                                 </div>
+                              </td>                              <td className="px-4 py-3 border-b">
+                                {property.category?.name || 'Unknown'}
                               </td>
                               <td className="px-4 py-3 border-b">
-                                {property.category?.name || 'Unknown'}
+                                {property.subcategory || 'None'}
                               </td>
                               <td className="px-4 py-3 border-b">{formatCurrency(property.price)}</td>
                               <td className="px-4 py-3 border-b">
@@ -1668,17 +1715,19 @@ function AdminDashboardPage() {
                   )}
 
                   {/* Product Details */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>                      <h4 className="font-medium text-gray-600">Category</h4>
+                  <div className="grid grid-cols-2 gap-4">                    <div>                      <h4 className="font-medium text-gray-600">Category</h4>
                       <p>{viewingProduct.category?.name || 'Unknown'}</p>
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-600">Price</h4>
-                      <p>{formatCurrency(viewingProduct.price)}</p>
+                      <h4 className="font-medium text-gray-600">Subcategory</h4>
+                      <p>{viewingProduct.subcategory || 'None'}</p>
                     </div>
                     <div>
+                      <h4 className="font-medium text-gray-600">Price</h4>
+                      <p>{formatCurrency(viewingProduct.price)}</p>                    </div>
+                    <div>
                       <h4 className="font-medium text-gray-600">Condition</h4>
-                      <p className="capitalize">{viewingProduct.condition === 'used' ? 'pre-owned' : viewingProduct.condition}</p>
+                      <p className="capitalize">{viewingProduct.condition}</p>
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-600">Stock</h4>
@@ -1727,8 +1776,8 @@ function AdminDashboardPage() {
                     >
                       Close
                     </button>
-                    <button
-                      onClick={() => {
+                    <button                      onClick={() => {
+                        console.log('Editing from view with subcategory:', viewingProduct.subcategory);
                         setEditingProduct(viewingProduct);
                         setViewingProduct(null);
                         setProductSubSection('add');
@@ -1772,10 +1821,13 @@ function AdminDashboardPage() {
                   )}
 
                   {/* Property Details */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
+                  <div className="grid grid-cols-2 gap-4">                    <div>
                       <h4 className="font-medium text-gray-600">Category</h4>
                       <p>{viewingProperty.category?.name || 'Unknown'}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-600">Subcategory</h4>
+                      <p>{viewingProperty.subcategory || 'None'}</p>
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-600">Price</h4>
