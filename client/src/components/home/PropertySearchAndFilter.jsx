@@ -32,7 +32,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
     const fetchInitial = async () => {
       if (realEstateCategory && selectedCategory === realEstateCategory._id) {
         try {
-          const res = await fetch(`/api/properties?category=${realEstateCategory._id}`);
+          const res = await fetch(`https://funmislist-project.vercel.app/api/properties?category=${realEstateCategory._id}`);
           const data = await res.json();
           if (Array.isArray(data.properties)) {
             onSearch(data.properties);
@@ -75,7 +75,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
     if (loc) params.append('location', loc);
 
     try {
-      const res = await fetch(`/api/properties?${params.toString()}`);
+      const res = await fetch(`https://funmislist-project.vercel.app/api/properties?${params.toString()}`);
       const data = await res.json();
       if (Array.isArray(data.properties)) {
         onSearch(data.properties);
@@ -98,7 +98,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
     setPriceRange({ min: '', max: '' });
     setLocationTerm('');
     try {
-      const res = await fetch(`/api/properties?category=${realEstateCategory?._id || ''}`);
+      const res = await fetch(`https://funmislist-project.vercel.app/api/properties?category=${realEstateCategory?._id || ''}`);
       const data = await res.json();
       if (Array.isArray(data.properties)) {
         onSearch(data.properties);
@@ -185,7 +185,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
                       if (priceRange.max) params.append('maxPrice', priceRange.max);
                       if (locationTerm) params.append('location', locationTerm);
                       try {
-                        const res = await fetch(`/api/properties?${params.toString()}`);
+                        const res = await fetch(`https://funmislist-project.vercel.app/api/properties?${params.toString()}`);
                         const data = await res.json();
                         if (data && Array.isArray(data.properties)) {
                           onSearch(data.properties);

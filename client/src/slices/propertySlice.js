@@ -5,7 +5,7 @@ export const fetchProperties = createAsyncThunk(
   'properties/fetchProperties',
   async (_, thunkAPI) => {
     try {
-      const response = await axios.get('/api/properties');
+      const response = await axios.get('https://funmislist-project.vercel.app/api/properties');
       // Always return an array for properties
       if (response.data && Array.isArray(response.data.properties)) {
         return response.data.properties;

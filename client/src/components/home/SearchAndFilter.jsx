@@ -57,7 +57,7 @@ const SearchAndFilter = ({ onSearch }) => {
     setLocationTerm('');
     setSelectedCondition('');
     try {
-      const res = await fetch('/api/products');
+      const res = await fetch('https://funmislist-project.vercel.app/api/products');
       const data = await res.json();
       if (data && data.products) {
         onSearch(data.products);

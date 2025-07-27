@@ -4,7 +4,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 export const fetchCategories = createAsyncThunk(
   'categories/fetchCategories',
   async () => {
-    const response = await fetch('/api/categories');
+    const response = await fetch('https://funmislist-project.vercel.app/api/categories');
     const data = await response.json();
     return data;
   }

@@ -5,7 +5,7 @@ export const fetchUserTransactions = createAsyncThunk(
   async (_, { getState, rejectWithValue }) => {
     try {
       const token = getState().user.token;
-      const response = await fetch('/api/users/me/transactions', {
+      const response = await fetch('https://funmislist-project.vercel.app/api/users/me/transactions', {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
