@@ -4,6 +4,7 @@ import { fetchProducts } from '../slices/productSlice';
 import { fetchCategories } from '../slices/categorySlice';
 import ProductCard from '../components/home/ProductCard';
 import SearchAndFilter from '../components/home/SearchAndFilter';
+import ShopBanner from '../components/home/ShopBanner';
 
 function ShopPage() {
   const dispatch = useDispatch();
@@ -16,41 +17,29 @@ function ShopPage() {
   }, [dispatch]);
 
   // initialize filteredProducts when products load
-  useEffect(() => {
-    setFilteredProducts(products);
-  }, [products]);
-  // filter handler
-  const handleSearch = ({ searchTerm, category, priceRange, location, condition }) => {
-    let temp = products;
-    if (searchTerm) temp = temp.filter(p => p.name?.toLowerCase().includes(searchTerm.toLowerCase()));
-    if (category) temp = temp.filter(p => p.category === category || p.category?._id === category);
-    if (priceRange.min) temp = temp.filter(p => p.price >= Number(priceRange.min));
-    if (priceRange.max) temp = temp.filter(p => p.price <= Number(priceRange.max));
-    if (location) {
-      const locLower = location.toLowerCase();
-      temp = temp.filter(p =>
-        p.location?.city?.toLowerCase().includes(locLower) ||
-        p.location?.address?.toLowerCase().includes(locLower)
-      );
-    }
-    if (condition) temp = temp.filter(p => p.condition === condition);
-    setFilteredProducts(temp);
-  };
+ useEffect(() => {
+  setFilteredProducts(Array.isArray(products) ? products : []);
+}, [products]);
+
+const handleSearch = (productsArray) => {
+  setFilteredProducts(Array.isArray(productsArray) ? productsArray : []);
+};
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Banner */}
-      <div className="mb-8 bg-blue-50 rounded-lg p-6 text-center">
-        <h1 className="text-3xl font-bold">All Products</h1>
-        <p className="mt-2 text-gray-600">Explore our full catalog</p>
+    <div className="container mx-auto px-2 md:px-4 py-8">
+      {/* Rotating Banner */}
+      <ShopBanner />
+      <div className="mb-8 flex flex-col items-center justify-center gap-2">
+        <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-gray-900 drop-shadow-lg text-center">Shop All Products</h1>
+        <span className="text-lg md:text-2xl text-gray-500 text-center">Find the best deals and new arrivals</span>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* sidebar filters */}
-        <aside>
+        <aside className="mb-8 lg:mb-0">
           <SearchAndFilter onSearch={handleSearch} />
         </aside>
         {/* products grid */}
-        <section className="lg:col-span-3">
+        <section className="lg:col-span-3 flex flex-col gap-8">
           {loading ? (
             <div className="flex justify-center items-center min-h-[200px]">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>

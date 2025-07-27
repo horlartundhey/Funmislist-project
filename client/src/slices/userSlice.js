@@ -13,7 +13,7 @@ const initialState = getInitialUserState();
 
 export const loginUser = createAsyncThunk('user/loginUser', async (credentials, { rejectWithValue }) => {
   try {
-    const response = await fetch('https://funmislist-project.vercel.app/api/auth/login', {
+    const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
@@ -31,7 +31,7 @@ export const loginUser = createAsyncThunk('user/loginUser', async (credentials, 
 
 export const registerUser = createAsyncThunk('user/registerUser', async (userData, { rejectWithValue }) => {
   try {
-    const response = await fetch('https://funmislist-project.vercel.app/api/auth/register', {
+    const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
@@ -50,7 +50,7 @@ export const registerUser = createAsyncThunk('user/registerUser', async (userDat
 const updateProfile = createAsyncThunk('user/updateProfile', async (profileData, { getState, rejectWithValue }) => {
   try {
     const { token } = getState().user;
-    const response = await fetch('https://funmislist-project.vercel.app/api/auth/update-profile', {
+    const response = await fetch('/api/auth/update-profile', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

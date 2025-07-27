@@ -24,7 +24,12 @@ const transactionSchema = new mongoose.Schema(
     property: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Property',
-      required: true,
+      required: false,
+    },
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+      required: false,
     },
     paystackResponse: {
       type: Object,

@@ -4,7 +4,7 @@ export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
   async ({ category, subcategory, condition } = {}, { rejectWithValue }) => {
     try {
-      let url = 'https://funmislist-project.vercel.app/api/products';
+      let url = '/api/products';
       const params = new URLSearchParams();
       if (category) params.append('category', category);
       if (subcategory) params.append('subcategory', subcategory);
@@ -18,7 +18,10 @@ export const fetchProducts = createAsyncThunk(
         throw new Error(err.message || 'Failed to fetch products');
       }
       const data = await response.json();
-      return data;
+      // Always return an array of products
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.products)) return data.products;
+      return [];
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -29,7 +32,7 @@ export const fetchProductById = createAsyncThunk(
   'products/fetchProductById',
   async (id, { rejectWithValue }) => {
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${id}`);
+      const response = await fetch(`/api/products/${id}`);
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.message || 'Failed to fetch product');
@@ -61,7 +64,7 @@ const productSlice = createSlice({
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.loading = false;
-        state.products = action.payload;
+        state.products = Array.isArray(action.payload) ? action.payload : [];
         state.error = null;
       })
       .addCase(fetchProducts.rejected, (state, action) => {

@@ -1,18 +1,26 @@
 import { useSelector, useDispatch } from 'react-redux';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { updateProfile } from '../slices/userSlice';
+import { fetchUserTransactions } from '../slices/transactionSlice';
 
 function UserDashboardPage() {
   const { userInfo } = useSelector((state) => state.user);
+  const { transactions, loading, error } = useSelector((state) => state.transactions);
   const dispatch = useDispatch();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(userInfo?.name || '');
   const [email, setEmail] = useState(userInfo?.email || '');
   const [password, setPassword] = useState('');
-  const [orders] = useState([
-    { id: 1, product: 'Smartphone', date: '2025-04-20', status: 'Delivered' },
-    { id: 2, product: 'Office Chair', date: '2025-04-18', status: 'Shipped' },
-  ]);
+
+  useEffect(() => {
+    if (userInfo) {
+      dispatch(fetchUserTransactions());
+    }
+  }, [dispatch, userInfo]);
+
+  useEffect(() => {
+  console.log('Transactions Data:', transactions);
+}, [transactions]);
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -89,23 +97,35 @@ function UserDashboardPage() {
       {/* Order History Section */}
       <section>
         <h2 className="text-2xl font-semibold mb-2">Order History</h2>
-        {orders.length > 0 ? (
+        {loading ? (
+          <p>Loading...</p>
+        ) : error ? (
+          <p className="text-red-500">{error}</p>
+        ) : transactions.length > 0 ? (
           <table className="w-full border-collapse border border-gray-300">
             <thead>
               <tr>
                 <th className="border border-gray-300 p-2">Order ID</th>
-                <th className="border border-gray-300 p-2">Product</th>
-                <th className="border border-gray-300 p-2">Date</th>
+                <th className="border border-gray-300 p-2">Product/Property ID</th>
+                <th className="border border-gray-300 p-2">Item</th>
+                <th className="border border-gray-300 p-2">Amount</th>
                 <th className="border border-gray-300 p-2">Status</th>
+                <th className="border border-gray-300 p-2">Date</th>
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
-                <tr key={order.id}>
-                  <td className="border border-gray-300 p-2 text-center">{order.id}</td>
-                  <td className="border border-gray-300 p-2 text-center">{order.product}</td>
-                  <td className="border border-gray-300 p-2 text-center">{order.date}</td>
-                  <td className="border border-gray-300 p-2 text-center">{order.status}</td>
+              {transactions.map((tx) => (
+                <tr key={tx._id}>
+                  <td className="border border-gray-300 p-2 text-center">{tx._id}</td>
+                  <td className="border border-gray-300 p-2 text-center">
+                    {tx.product?._id || tx.property?._id || '-'}
+                  </td>
+                  <td className="border border-gray-300 p-2 text-center">
+                    {tx.product?.name || tx.property?.name || '-'}
+                  </td>
+                  <td className="border border-gray-300 p-2 text-center">${tx.amount}</td>
+                  <td className="border border-gray-300 p-2 text-center">{tx.status}</td>
+                  <td className="border border-gray-300 p-2 text-center">{new Date(tx.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>

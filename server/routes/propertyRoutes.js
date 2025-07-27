@@ -7,45 +7,8 @@ const { bookAppointment, updateProperty, createProperty, getProperties, deletePr
 const { protect, admin } = require('../middleware/authMiddleware');
 const { upload } = require('../config/cloudinary');
 
-// Get all properties with optional category filter
-router.get('/', async (req, res) => {
-  try {
-    const { category } = req.query;
-    
-    // Debug the incoming request
-    console.log('GET /api/properties - Query:', req.query);
-    console.log('Category filter:', category);
-    
-    let query = {};
-    
-    // Only add category filter if it exists and is valid
-    if (category) {
-      try {
-        // Validate if the category is a valid ObjectId
-        if (mongoose.Types.ObjectId.isValid(category)) {
-          query.category = category;
-        } else {
-          console.log('Invalid category ID format:', category);
-        }
-      } catch (err) {
-        console.error('Error processing category:', err);
-      }
-    }
-    
-    console.log('Final query:', query);
-    
-    const properties = await Property.find(query)
-      .populate('category', 'name')
-      .populate('createdBy', 'name email');
-    
-    console.log(`Found ${properties.length} properties`);
-    
-    res.json(properties);
-  } catch (error) {
-    console.error('Error fetching properties:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
+// Get all properties with advanced filters
+router.get('/', getProperties);
 
 // Get a specific property by ID
 router.get('/:id', getPropertyById);

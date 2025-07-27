@@ -1,41 +1,50 @@
 const Property = require('../models/Property');
+const User = require('../models/User');
 const mongoose = require('mongoose');
+const { sendAppointmentConfirmation } = require('../utils/emailService');
 
-// Get all properties
+// Get all properties with advanced filters
 const getProperties = async (req, res) => {
   try {
-    const filter = {};
-    if (req.query.category) {
-      console.log('Received category query:', req.query.category); // Debug log
-      
-      // Handle category filtering - try both ObjectId and string matching
-      if (mongoose.isValidObjectId(req.query.category)) {
-        filter.category = new mongoose.Types.ObjectId(req.query.category);
+    const { category, subcategory, searchTerm, minPrice, maxPrice, location } = req.query;
+    let filter = {};
+    if (category) {
+      if (mongoose.isValidObjectId(category)) {
+        filter.category = new mongoose.Types.ObjectId(category);
       } else {
-        // If not a valid ObjectId, try as string
-        filter.category = req.query.category;
+        filter.category = category;
       }
     }
-    
-    // Handle subcategory filtering
-    if (req.query.subcategory) {
-      console.log('Received subcategory query:', req.query.subcategory);
-      // Use case-insensitive matching for subcategory
-      filter.subcategory = { $regex: new RegExp('^' + req.query.subcategory + '$', 'i') };
+    if (subcategory) {
+      filter.subcategory = { $regex: new RegExp('^' + subcategory + '$', 'i') };
     }
-    
-    console.log('Querying properties with filter:', filter); // Debug log
-    
+    if (searchTerm) {
+      filter.$or = [
+        { title: { $regex: searchTerm, $options: 'i' } },
+        { description: { $regex: searchTerm, $options: 'i' } },
+        { 'location.city': { $regex: searchTerm, $options: 'i' } },
+        { 'location.state': { $regex: searchTerm, $options: 'i' } },
+        { 'location.address': { $regex: searchTerm, $options: 'i' } }
+      ];
+    }
+    if (minPrice) {
+      filter.price = { ...filter.price, $gte: Number(minPrice) };
+    }
+    if (maxPrice) {
+      filter.price = { ...filter.price, $lte: Number(maxPrice) };
+    }
+    if (location) {
+      filter.$or = [
+        ...(filter.$or || []),
+        { 'location.city': { $regex: location, $options: 'i' } },
+        { 'location.address': { $regex: location, $options: 'i' } }
+      ];
+    }
+    console.log('Property search filter:', JSON.stringify(filter, null, 2));
     const properties = await Property.find(filter).lean();
-    console.log('Found properties:', properties.length); // Debug log count instead of full objects
-    
-    if (properties.length === 0) {
-      console.log('No properties found for filter:', filter); // Debug log
-    }
-    
-    res.status(200).json(properties);
+    console.log('Properties found:', properties.length);
+    res.status(200).json({ properties });
   } catch (error) {
-    console.error('Error fetching properties:', error); // Debug log
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -100,7 +109,6 @@ const bookAppointment = async (req, res) => {
 
   try {
     const property = await Property.findById(id);
-
     if (!property) {
       return res.status(404).json({ message: 'Property not found' });
     }
@@ -108,14 +116,34 @@ const bookAppointment = async (req, res) => {
     const timeSlot = property.availableTimeSlots.find(
       (slot) => slot.date.toISOString() === new Date(date).toISOString()
     );
-
     if (!timeSlot || timeSlot.isBooked) {
       return res.status(400).json({ message: 'Time slot not available' });
     }
 
-    // Fixed the syntax error that was here (removed "borough: true,")
     timeSlot.isBooked = true;
     await property.save();
+
+    // Fetch user info for email
+    const userId = req.user?._id;
+    let user = null;
+    if (userId) {
+      user = await User.findById(userId);
+    }
+
+    // Prepare appointment details for email
+    if (user && user.email) {
+      const appointmentDetails = {
+        propertyTitle: property.title,
+        date: new Date(date).toLocaleDateString('en-NG', { year: 'numeric', month: 'long', day: 'numeric' }),
+        time: new Date(date).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' }),
+        propertyAddress: property.location?.address || '',
+      };
+      try {
+        await sendAppointmentConfirmation(user.email, user.name, appointmentDetails);
+      } catch (emailErr) {
+        console.error('Failed to send appointment confirmation email:', emailErr);
+      }
+    }
 
     res.status(200).json({ message: 'Appointment booked successfully' });
   } catch (error) {

@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { initiatePayment, resetPayment } from '../slices/paymentSlice';
 import { clearCart } from '../slices/cartSlice';
 import { toast } from 'react-toastify';
+import formatCurrency from '../utils/formatCurrency';
+
+
+function isValidPhoneNumber(phone) {
+  // Nigerian phone number: 11 digits, starts with 0, or general 10/11 digits
+  return /^0\d{10}$/.test(phone);
+}
 
 function CheckoutPage() {
   const { userInfo, token } = useSelector((state) => state.user);
@@ -13,11 +21,19 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
+  const [phoneError, setPhoneError] = useState('');
 
   const totalPrice = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    if (e.target.name === 'phone') {
+      if (!isValidPhoneNumber(e.target.value)) {
+        setPhoneError('Enter a valid 11-digit phone number starting with 0');
+      } else {
+        setPhoneError('');
+      }
+    }
   };
 
   useEffect(() => {
@@ -55,10 +71,15 @@ function CheckoutPage() {
 
   const handlePayNow = async (e) => {
     e.preventDefault();
-    
+
     // Validate form
     if (!form.address || !form.city || !form.phone) {
       toast.error('Please fill in all shipping details');
+      return;
+    }
+    if (!isValidPhoneNumber(form.phone)) {
+      setPhoneError('Enter a valid 11-digit phone number starting with 0');
+      toast.error('Please enter a valid phone number');
       return;
     }
 
@@ -72,6 +93,8 @@ function CheckoutPage() {
     dispatch(initiatePayment({
       userEmail: userInfo.email,
       total: totalPrice,
+      itemType: 'product',
+      itemId: cartItems[0]?.id,
       // You could also send shipping details if needed
       shippingDetails: form
     }));
@@ -113,13 +136,13 @@ function CheckoutPage() {
                       <span className="mx-2 text-gray-500">×</span>
                       <span className="text-gray-400">{item.quantity}</span>
                     </div>
-                    <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                <span className="font-medium">{formatCurrency(item.price * item.quantity)}</span>
                   </li>
                 ))}
               </ul>
               <div className="flex justify-between pt-4 border-t border-gray-700 text-lg font-semibold text-gray-100">
                 <span>Total</span>
-                <span className="text-blue-400">${totalPrice.toFixed(2)}</span>
+                <span className="text-blue-400">{formatCurrency(totalPrice)}</span>
               </div>
             </>
           )}
@@ -170,6 +193,9 @@ function CheckoutPage() {
                 placeholder="Enter your phone number"
                 required
               />
+              {phoneError && (
+                <p className="text-red-400 text-xs mt-1">{phoneError}</p>
+              )}
             </div>
           </div>
           
@@ -184,7 +210,7 @@ function CheckoutPage() {
                 Processing...
               </div>
             ) : (
-              `Pay Now ($${totalPrice.toFixed(2)})`
+              `Pay Now (${formatCurrency(totalPrice)})`
             )}
           </button>
         </form>

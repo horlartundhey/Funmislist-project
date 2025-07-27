@@ -10,11 +10,15 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import EmailVerificationPage from './pages/EmailVerificationPage';
 import UserDashboardPage from './pages/UserDashboardPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import ShopPage from './pages/ShopPage';
 import PropertyPage from './pages/PropertyPage';
 import PropertyDetailsPage from './pages/PropertyDetailsPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import IconsOverlay from './components/home/IconsOverlay';
 import './App.css';
@@ -46,8 +50,12 @@ function Layout() {
               </ProtectedRoute>
             }
           />
+          <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+          <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
           <Route
             path="/dashboard"
             element={

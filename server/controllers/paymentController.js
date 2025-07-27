@@ -2,17 +2,18 @@ const axios = require('axios');
 const Transaction = require('../models/transactionModel');
 
 const initiatePayment = async (req, res) => {
-  const { email, amount } = req.body;
-  if (!email || !amount) {
-    return res.status(400).json({ message: 'Email and amount are required' });
+  const { email, amount, itemType, itemId } = req.body;
+  if (!email || !amount || !itemType || !itemId) {
+    return res.status(400).json({ message: 'Email, amount, itemType, and itemId are required' });
   }
   try {
+    const callbackUrl = `https://funmislist-project-sgb3.vercel.app/payment-success?itemType=${itemType}&itemId=${itemId}`;
     const response = await axios.post(
       'https://api.paystack.co/transaction/initialize',
       {
         email,
         amount: Math.round(amount * 100), // Convert to kobo
-        callback_url: 'http://localhost:5173/dashboard', // Frontend dashboard URL
+        callback_url: callbackUrl,
         currency: 'NGN'
       },
       {
@@ -32,7 +33,7 @@ const initiatePayment = async (req, res) => {
 };
 
 const verifyPayment = async (req, res) => {
-  const { reference, propertyId } = req.query;
+  const { reference, itemType, itemId } = req.query;
   try {
     // First check if transaction already exists
     let transaction = await Transaction.findOne({ reference });
@@ -52,16 +53,23 @@ const verifyPayment = async (req, res) => {
     );
 
     const paystackData = response.data.data;
-    
-    // Create transaction record
-    transaction = await Transaction.create({
+
+    // Prepare transaction data
+    const transactionData = {
       reference,
       user: req.user._id,
       amount: paystackData.amount / 100, // Convert from kobo to naira
       status: paystackData.status === 'success' ? 'success' : 'failed',
-      property: propertyId,
       paystackResponse: paystackData,
-    });
+    };
+    if (itemType === 'property') {
+      transactionData.property = itemId;
+    } else if (itemType === 'product') {
+      transactionData.product = itemId;
+    }
+
+    // Create transaction record
+    transaction = await Transaction.create(transactionData);
 
     res.status(200).json(transaction);
   } catch (error) {
@@ -79,8 +87,8 @@ const getTransactions = async (req, res) => {
     const transactions = await Transaction.find()
       .populate('user', 'name email')
       .populate('property', 'title price')
+      .populate('product', 'name title price')
       .sort('-createdAt');
-    
     res.status(200).json(transactions);
   } catch (err) {
     console.error('Error fetching transactions:', err.message);

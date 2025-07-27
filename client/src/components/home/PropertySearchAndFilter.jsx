@@ -12,7 +12,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
   const [showFilters, setShowFilters] = useState(false);
   
   const { allCategories: categories } = useSelector((state) => state.categories);
-  
+  console.log('allCategories:', categories);
   // Find the Real Estate category
   const realEstateCategory = categories?.find(cat => 
     cat.name.toLowerCase() === 'real estate'
@@ -20,21 +20,37 @@ const PropertySearchAndFilter = ({ onSearch }) => {
   
   const availableSubcategories = realEstateCategory?.subcategories || [];
 
-  // Set Real Estate category by default
+  // Set Real Estate category by default and always include in all queries
   useEffect(() => {
     if (realEstateCategory && !selectedCategory) {
       setSelectedCategory(realEstateCategory._id);
-      onSearch({
-        searchTerm: '',
-        category: realEstateCategory._id,
-        subcategory: '',
-        priceRange: { min: '', max: '' },
-        location: ''
-      });
     }
-  }, [realEstateCategory, onSearch]);
+  }, [realEstateCategory, selectedCategory]);
 
-  const handleSubmit = (e) => {
+  // Fetch initial properties for Real Estate category
+  useEffect(() => {
+    const fetchInitial = async () => {
+      if (realEstateCategory && selectedCategory === realEstateCategory._id) {
+        try {
+          const res = await fetch(`/api/properties?category=${realEstateCategory._id}`);
+          const data = await res.json();
+          if (Array.isArray(data.properties)) {
+            onSearch(data.properties);
+          } else if (Array.isArray(data)) {
+            onSearch(data);
+          } else {
+            onSearch([]);
+          }
+        } catch {
+          onSearch([]);
+        }
+      }
+    };
+    fetchInitial();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realEstateCategory, selectedCategory]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Parse combined "term in location" syntax
     let term = searchTerm;
@@ -44,17 +60,36 @@ const PropertySearchAndFilter = ({ onSearch }) => {
       term = inMatch[1].trim();
       loc = inMatch[2].trim();
     }
+    // Build query params
+    let params = new URLSearchParams();
+    // Always include Real Estate category if available
+    if (realEstateCategory) {
+      params.append('category', realEstateCategory._id);
+    } else if (selectedCategory) {
+      params.append('category', selectedCategory);
+    }
+    if (term) params.append('searchTerm', term);
+    if (selectedSubcategory) params.append('subcategory', selectedSubcategory);
+    if (priceRange.min) params.append('minPrice', priceRange.min);
+    if (priceRange.max) params.append('maxPrice', priceRange.max);
+    if (loc) params.append('location', loc);
 
-    onSearch({
-      searchTerm: term,
-      category: selectedCategory,
-      subcategory: selectedSubcategory,
-      priceRange,
-      location: loc
-    });
+    try {
+      const res = await fetch(`/api/properties?${params.toString()}`);
+      const data = await res.json();
+      if (Array.isArray(data.properties)) {
+        onSearch(data.properties);
+      } else if (Array.isArray(data)) {
+        onSearch(data);
+      } else {
+        onSearch([]);
+      }
+    } catch {
+      onSearch([]);
+    }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     setSearchTerm('');
     if (realEstateCategory) {
       setSelectedCategory(realEstateCategory._id);
@@ -62,15 +97,23 @@ const PropertySearchAndFilter = ({ onSearch }) => {
     setSelectedSubcategory('');
     setPriceRange({ min: '', max: '' });
     setLocationTerm('');
-    onSearch({
-      searchTerm: '',
-      category: realEstateCategory?._id || '',
-      subcategory: '',
-      priceRange: { min: '', max: '' },
-      location: ''
-    });
+    try {
+      const res = await fetch(`/api/properties?category=${realEstateCategory?._id || ''}`);
+      const data = await res.json();
+      if (Array.isArray(data.properties)) {
+        onSearch(data.properties);
+      } else if (Array.isArray(data)) {
+        onSearch(data);
+      } else {
+        onSearch([]);
+      }
+    } catch {
+      onSearch([]);
+    }
     setShowFilters(false);
   };
+
+  
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100">
@@ -125,16 +168,33 @@ const PropertySearchAndFilter = ({ onSearch }) => {
                   </label>
                   <select
                     value={selectedSubcategory}
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const value = e.target.value;
                       setSelectedSubcategory(value);
-                      onSearch({ 
-                        searchTerm, 
-                        category: selectedCategory, 
-                        subcategory: value,
-                        priceRange,
-                        location: locationTerm
-                      });
+                      // Fetch filtered properties from backend when subcategory changes
+                      let params = new URLSearchParams();
+                      // Always include Real Estate category if available
+                      if (realEstateCategory) {
+                        params.append('category', realEstateCategory._id);
+                      } else if (selectedCategory) {
+                        params.append('category', selectedCategory);
+                      }
+                      if (searchTerm) params.append('searchTerm', searchTerm);
+                      if (value) params.append('subcategory', value);
+                      if (priceRange.min) params.append('minPrice', priceRange.min);
+                      if (priceRange.max) params.append('maxPrice', priceRange.max);
+                      if (locationTerm) params.append('location', locationTerm);
+                      try {
+                        const res = await fetch(`/api/properties?${params.toString()}`);
+                        const data = await res.json();
+                        if (data && Array.isArray(data.properties)) {
+                          onSearch(data.properties);
+                        } else {
+                          onSearch([]);
+                        }
+                      } catch {
+                        onSearch([]);
+                      }
                     }}
                     className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-red-500 focus:ring-1 focus:ring-red-500"
                   >

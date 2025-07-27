@@ -10,7 +10,11 @@ function PropertyPage() {
   const dispatch = useDispatch();
   const { properties, loading, error } = useSelector((state) => state.properties);
   const [filteredProps, setFilteredProps] = useState([]);
-  const { categories } = useSelector((state) => state.categories);
+  const { allCategories } = useSelector((state) => state.categories);
+  // Debug logs
+  console.log('PropertyPage - allCategories:', allCategories);
+  console.log('PropertyPage - properties:', properties);
+  console.log('PropertyPage - filteredProps:', filteredProps);
 
   useEffect(() => {
     dispatch(fetchProperties());
@@ -18,56 +22,31 @@ function PropertyPage() {
   }, [dispatch]);
 
   useEffect(() => {
-    // When properties load, filter to only show real estate category initially
-    if (properties.length && categories.length) {
-      const realEstateCat = categories.find(cat => cat.name.toLowerCase() === 'real estate');
+    // Only set filteredProps if it's empty (first load or after reset)
+    if (
+      filteredProps.length === 0 &&
+      properties.length &&
+      allCategories &&
+      allCategories.length
+    ) {
+      const realEstateCat = allCategories.find(cat => cat.name.toLowerCase() === 'real estate');
       if (realEstateCat) {
-        const realEstateProps = properties.filter(p => p.category?._id === realEstateCat._id);
+        const realEstateProps = properties.filter(p => {
+          if (typeof p.category === 'object' && p.category !== null) {
+            return p.category._id === realEstateCat._id;
+          }
+          return p.category === realEstateCat._id;
+        });
         setFilteredProps(realEstateProps);
       } else {
         setFilteredProps(properties);
       }
     }
-  }, [properties, categories]);
+  }, [properties, allCategories, filteredProps.length]);
 
-  const handleSearch = ({ searchTerm, category, subcategory, priceRange, location }) => {
-    let temp = properties;
-    
-    // Filter by category (Real Estate)
-    if (category) {
-      temp = temp.filter(p => p.category?._id === category);
-    }
-
-    // Filter by subcategory (property type)
-    if (subcategory) {
-      temp = temp.filter(p => p.subcategory === subcategory);
-    }
-
-    // Filter by search term
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      temp = temp.filter(p => 
-        p.title.toLowerCase().includes(term) ||
-        p.description.toLowerCase().includes(term)
-      );
-    }
-
-    // Filter by price range
-    if (priceRange.min) temp = temp.filter(p => p.price >= +priceRange.min);
-    if (priceRange.max) temp = temp.filter(p => p.price <= +priceRange.max);
-
-    // Filter by location
-    if (location) {
-      const loc = location.toLowerCase();
-      temp = temp.filter(p =>
-        p.location?.city?.toLowerCase().includes(loc) ||
-        p.location?.state?.toLowerCase().includes(loc) ||
-        p.location?.address?.toLowerCase().includes(loc)
-      );
-    }
-    
-    setFilteredProps(temp);
-  };
+  const handleSearch = (propertiesArray) => {
+  setFilteredProps(Array.isArray(propertiesArray) ? propertiesArray : []);
+};
 
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin h-12 w-12 border-b-2 border-red-500 rounded-full"></div></div>;
   if (error) return <p className="text-center text-red-500 p-4">Error: {error}</p>;

@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import { formatDate } from '../utils/dateFormatter';
 import formatCurrency from '../utils/formatCurrency';
+import { initiatePayment } from '../slices/paymentSlice';
 
 function PropertyDetailsPage() {
   const { id } = useParams();
   const { token } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -48,6 +50,19 @@ function PropertyDetailsPage() {
     }
   };
 
+  // New payment handler for property appointment
+  const handlePayForAppointment = async () => {
+    if (!property || !property.price) return;
+    dispatch(initiatePayment({
+      userEmail: appointment.email,
+      total: property.price,
+      itemType: 'property',
+      itemId: id,
+      // Optionally, you can send appointment details as well
+      appointmentDetails: appointment
+    }));
+  };
+
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
   if (!property) return <p>No property found.</p>;
@@ -82,6 +97,9 @@ function PropertyDetailsPage() {
         </button>
       </form>
       {bookingMsg && <p>{bookingMsg}</p>}
+      <button onClick={handlePayForAppointment} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 mt-2">
+        Pay for Appointment
+      </button>
     </div>
   );
 }

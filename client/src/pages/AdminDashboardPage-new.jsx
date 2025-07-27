@@ -7,6 +7,7 @@ import PropertyForm from '../components/PropertyForm';
 import { fetchCategories } from '../slices/categorySlice';
 import { fetchProducts } from '../slices/productSlice';
 import { fetchProperties } from '../slices/propertySlice';
+import universalCurrency from '../utils/universalCurrency';
 
 function AdminDashboardPage() {
   // State management
@@ -65,11 +66,13 @@ function AdminDashboardPage() {
   };
   
   // Analytics helper functions
+  const currencyCode = 'USD'; // Change to desired default or make dynamic
   const calculateTotalRevenue = () => {
     // Simulate revenue based on products
-    if (!products || products.length === 0) return 0;
+    if (!products || products.length === 0) return universalCurrency(0, currencyCode);
     const soldProducts = products.slice(0, Math.ceil(products.length * 0.3));
-    return soldProducts.reduce((total, product) => total + (parseFloat(product.price) || 0), 0).toFixed(2);
+    const total = soldProducts.reduce((total, product) => total + (parseFloat(product.price) || 0), 0);
+    return universalCurrency(total, currencyCode);
   };
   
   const calculateTotalTransactions = () => {
@@ -115,7 +118,7 @@ function AdminDashboardPage() {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/categories', {
+      const response = await fetch('https://funmislist-project.vercel.app/api/categories', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -149,7 +152,7 @@ function AdminDashboardPage() {
     setIsLoading(true);
     
     try {
-      const response = await fetch(`http://localhost:5000/api/categories/${editingCategory._id}`, {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${editingCategory._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -180,7 +183,7 @@ function AdminDashboardPage() {
     }
     
     try {
-      const response = await fetch(`http://localhost:5000/api/categories/${id}`, {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${userInfo.token}`
@@ -228,7 +231,7 @@ function AdminDashboardPage() {
         }
       }
       
-      let url = 'http://localhost:5000/api/products';
+      let url = 'https://funmislist-project.vercel.app/api/products';
       let method = 'POST';
       
       if (editingProduct) {
@@ -278,7 +281,7 @@ function AdminDashboardPage() {
     }
     
     try {
-      const response = await fetch(`http://localhost:5000/api/products/${id}`, {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${userInfo.token}`
@@ -330,7 +333,7 @@ function AdminDashboardPage() {
         }
       }
       
-      let url = 'http://localhost:5000/api/properties';
+      let url = 'https://funmislist-project.vercel.app/api/properties';
       let method = 'POST';
       
       if (editingProperty) {
@@ -373,7 +376,7 @@ function AdminDashboardPage() {
     }
     
     try {
-      const response = await fetch(`http://localhost:5000/api/properties/${id}`, {
+      const response = await fetch(`https://funmislist-project.vercel.app/api/properties/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${userInfo.token}`

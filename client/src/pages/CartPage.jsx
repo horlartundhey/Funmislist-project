@@ -1,6 +1,7 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { removeFromCart, updateCartItem } from '../slices/cartSlice';
 import { useNavigate } from 'react-router-dom';
+import universalCurrency from '../utils/universalCurrency';
 
 function CartPage() {
   const dispatch = useDispatch();
@@ -18,6 +19,8 @@ function CartPage() {
   };
 
   const totalPrice = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  // You can set the default currency code here or get it from settings/store
+  const currencyCode = 'NGN'; // Change to desired default or make dynamic
 
   return (
     <div className="container mx-auto p-4">
@@ -31,7 +34,7 @@ function CartPage() {
               <div key={item.id} className="p-4 border rounded">
                 <img src={item.image} alt={item.name} className="w-full h-48 object-cover mb-2" />
                 <h2 className="text-xl font-bold">{item.name}</h2>
-                <p className="text-gray-700">${item.price}</p>
+                <p className="text-gray-700">{universalCurrency(item.price, currencyCode)}</p>
                 <div className="flex items-center mt-2">
                   <button
                     onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
@@ -57,7 +60,7 @@ function CartPage() {
             ))}
           </div>
           <div className="mt-4 text-right">
-            <h2 className="text-2xl font-bold">Total: ${totalPrice.toFixed(2)}</h2>
+            <h2 className="text-2xl font-bold">Total: {universalCurrency(totalPrice, currencyCode)}</h2>
             <button
               className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
               onClick={() => navigate('/checkout')}

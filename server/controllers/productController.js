@@ -5,105 +5,78 @@ const Category = require('../models/Category');
 const { logDebug, findSimilarStrings } = require('../utils/debugHelper');
 
 // Get all products with optional category filter
-const getProducts = async (req, res) => {  try {
-    const { category, subcategory, condition } = req.query;
-    // Only filter by published for non-admin users
+const getProducts = async (req, res) => {
+  try {
+    const { category, subcategory, condition, searchTerm, minPrice, maxPrice, location } = req.query;
     let query = {};
-    
-    // Check if request is from admin or public
+    // Only filter by published for non-admin users
     if (!req.headers.authorization) {
-      // Public request - only published products
       query.published = true;
-    }    // Apply subcategory filter if provided
+    }
+    // Search term (name or description)
+    if (searchTerm) {
+      query.$or = [
+        { name: { $regex: searchTerm, $options: 'i' } },
+        { description: { $regex: searchTerm, $options: 'i' } }
+      ];
+    }
+    // Subcategory filter (existing logic)
     if (subcategory) {
-      logDebug(`Subcategory filter requested: "${subcategory}"`);
-      
-      // Handle both slugified and non-slugified subcategory names
       let subcategoryPattern;
-      
-      // If subcategory has dashes, it might be slugified already
       if (subcategory.includes('-')) {
-        // Convert slug back to potential original name with spaces
         subcategoryPattern = subcategory.replace(/-/g, ' ');
-        logDebug(`Converted slugified subcategory to: "${subcategoryPattern}"`);
       } else {
         subcategoryPattern = subcategory;
       }
-      
-      // First try an exact case-insensitive match
-      const exactMatchQuery = { subcategory: { $regex: new RegExp('^' + subcategoryPattern + '$', 'i') }};
-      
-      // Get all distinct subcategories to help with debugging and suggestions
       const allSubcategories = await Product.distinct('subcategory');
       const validSubcategories = allSubcategories.filter(Boolean);
-      
-      logDebug(`Available subcategories in DB:`, validSubcategories);
-      
-      // Check if the subcategory exactly matches any in database
       const exactMatches = validSubcategories.filter(
         sub => sub.toLowerCase() === subcategoryPattern.toLowerCase()
       );
-      
       if (exactMatches.length > 0) {
-        logDebug(`Found exact match for subcategory: "${exactMatches[0]}"`);
-        query.subcategory = exactMatches[0]; // Use the exact case from database
+        query.subcategory = exactMatches[0];
       } else {
-        // No exact match, try fuzzy matching
-        const similarMatches = findSimilarStrings(subcategoryPattern, validSubcategories, 0.7);
-        
-        if (similarMatches.length > 0) {
-          logDebug(`No exact match found, but found similar subcategories:`, similarMatches);
-          
-          // Use the best match if very similar (threshold 0.9)
-          if (similarMatches[0].similarity > 0.9) {
-            query.subcategory = similarMatches[0].value;
-            logDebug(`Using best match: "${similarMatches[0].value}" (similarity: ${similarMatches[0].similarity.toFixed(2)})`);
-          } else {
-            // Otherwise use regex to match partially
-            const pattern = subcategoryPattern
-              .replace(/[-\s]+/g, '[-\\s]*') // Make spaces and hyphens interchangeable
-              .replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape regex special chars
-            
-            query.subcategory = { $regex: new RegExp(pattern, 'i') };
-            logDebug(`Using fuzzy regex pattern: ${pattern}`);
-          }
-        } else {
-          // No similar matches, use original query with case-insensitive matching
-          query.subcategory = { $regex: new RegExp('^' + subcategoryPattern + '$', 'i') };
-          logDebug(`No similar matches found, using original pattern: "${subcategoryPattern}"`);
-        }
+        const pattern = subcategoryPattern.replace(/[-\s]+/g, '[-\\s]*').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        query.subcategory = { $regex: new RegExp(pattern, 'i') };
       }
     }
-    
-    // Apply condition filter if provided
+    // Condition filter
     if (condition) {
       query.condition = condition;
-      console.log('Filtering by condition:', condition);
     }
+    // Category filter
     if (category) {
       if (mongoose.Types.ObjectId.isValid(category)) {
         query.category = new mongoose.Types.ObjectId(category);
       } else {
-        // treat category as name slug
         const catDoc = await Category.findOne({
           name: { $regex: new RegExp('^' + category.replace(/-/g, ' ') + '$', 'i') }
         });
         if (catDoc) {
           query.category = catDoc._id;
         } else {
-          // no matching category slug, return empty result
-          console.log('No matching category slug:', category);
-          return res.status(200).json([]);
+          return res.status(200).json({ products: [] });
         }
       }
-      console.log('Filtering by category param:', category); // Debug log
     }
-    
-    console.log('Query:', query); // Debug log
+    // Price range filter
+    if (minPrice) {
+      query.price = { ...query.price, $gte: Number(minPrice) };
+    }
+    if (maxPrice) {
+      query.price = { ...query.price, $lte: Number(maxPrice) };
+    }
+    // Location filter (city or address)
+    if (location) {
+      query.$or = [
+        ...(query.$or || []),
+        { 'location.city': { $regex: location, $options: 'i' } },
+        { 'location.address': { $regex: location, $options: 'i' } }
+      ];
+    }
     const products = await Product.find(query).populate('category');
-    res.status(200).json(products);
+    res.status(200).json({ products });
   } catch (error) {
-    console.error('Error in getProducts:', error); // Debug log
     res.status(500).json({ message: 'Server error' });
   }
 };

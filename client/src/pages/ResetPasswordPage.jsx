@@ -1,19 +1,18 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaEye, FaEyeSlash, FaCheck, FaTimes } from 'react-icons/fa';
-import { validatePassword, validateEmail, validateName } from '../utils/validation';
+import { validatePassword } from '../utils/validation';
 
-function RegisterPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+function ResetPasswordPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [passwordValidation, setPasswordValidation] = useState({ isValid: false, errors: [] });
   const [showValidation, setShowValidation] = useState(false);
+  const { token } = useParams();
   const navigate = useNavigate();
 
   const handlePasswordChange = (e) => {
@@ -26,18 +25,7 @@ function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-
-    // Validation
-    if (!validateName(name)) {
-      setError('Please enter a valid name (at least 2 characters, letters only)');
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setError('Please enter a valid email address');
-      return;
-    }
+    setError('');
 
     if (!passwordValidation.isValid) {
       setError('Please fix password requirements');
@@ -52,24 +40,25 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('https://funmislist-project.vercel.app/api/auth/register', {
-        method: 'POST',
+      const response = await fetch(`https://funmislist-project.vercel.app/api/auth/reset-password/${token}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
+        body: JSON.stringify({ password }),
       });
 
       const data = await response.json();
+      
       if (response.ok) {
         navigate('/login', { 
           state: { 
-            message: data.message || 'Registration successful! Please check your email to verify your account.' 
+            message: 'Password reset successful! You can now log in with your new password.' 
           }
         });
       } else {
-        setError(data.message || 'Registration failed');
+        setError(data.message || 'Password reset failed');
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Reset password error:', error);
       setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
@@ -81,59 +70,25 @@ function RegisterPage() {
       <div className="max-w-md w-full space-y-8 bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            Create an Account
+            Reset Password
           </h2>
           <p className="mt-2 text-center text-sm text-gray-400">
-            Join our community today
+            Enter your new password below
           </p>
         </div>
-        
+
         {error && (
           <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded relative" role="alert">
             <span className="block sm:inline">{error}</span>
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-          <div className="rounded-md shadow-sm space-y-4">
-            {/* Name Field */}
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300">
-                Full Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 mt-1 border border-gray-700 rounded-lg bg-gray-700/50 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your full name"
-              />
-            </div>
-
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 mt-1 border border-gray-700 rounded-lg bg-gray-700/50 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your email"
-              />
-            </div>
-
+          <div className="space-y-4">
             {/* Password Field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300">
-                Password
+                New Password
               </label>
               <div className="relative">
                 <input
@@ -144,7 +99,7 @@ function RegisterPage() {
                   value={password}
                   onChange={handlePasswordChange}
                   className="appearance-none relative block w-full px-3 py-2 pr-10 mt-1 border border-gray-700 rounded-lg bg-gray-700/50 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Create a password"
+                  placeholder="Enter new password"
                 />
                 <button
                   type="button"
@@ -181,7 +136,7 @@ function RegisterPage() {
             {/* Confirm Password Field */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300">
-                Confirm Password
+                Confirm New Password
               </label>
               <div className="relative">
                 <input
@@ -192,7 +147,7 @@ function RegisterPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="appearance-none relative block w-full px-3 py-2 pr-10 mt-1 border border-gray-700 rounded-lg bg-gray-700/50 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Confirm your password"
+                  placeholder="Confirm new password"
                 />
                 <button
                   type="button"
@@ -232,13 +187,13 @@ function RegisterPage() {
               disabled={loading || !passwordValidation.isValid || password !== confirmPassword}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-150 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading ? 'Resetting Password...' : 'Reset Password'}
             </button>
           </div>
 
           <div className="text-center">
             <p className="text-sm text-gray-400">
-              Already have an account?{' '}
+              Remember your password?{' '}
               <Link to="/login" className="font-medium text-blue-400 hover:text-blue-300">
                 Sign in here
               </Link>
@@ -250,4 +205,4 @@ function RegisterPage() {
   );
 }
 
-export default RegisterPage;
+export default ResetPasswordPage;

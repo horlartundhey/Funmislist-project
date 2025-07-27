@@ -16,7 +16,7 @@ const SearchAndFilter = ({ onSearch }) => {
   const filteredCategories = categories?.filter(cat => cat.name.toLowerCase() !== 'real estate') || [];
   const selectedCategoryObj = filteredCategories?.find(cat => cat._id === selectedCategory);
   const availableSubcategories = selectedCategoryObj?.subcategories || [];
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Parse combined "term in location" syntax
     let term = searchTerm;
@@ -26,30 +26,47 @@ const SearchAndFilter = ({ onSearch }) => {
       term = inMatch[1].trim();
       loc = inMatch[2].trim();
     }
-    onSearch({
-      searchTerm: term,
-      category: selectedCategory,
-      subcategory: selectedSubcategory,
-      priceRange,
-      location: loc,
-      condition: selectedCondition
-    });
+    // Build query params
+    let params = new URLSearchParams();
+    if (term) params.append('searchTerm', term);
+    if (selectedCategory) params.append('category', selectedCategory);
+    if (selectedSubcategory) params.append('subcategory', selectedSubcategory);
+    if (priceRange.min) params.append('minPrice', priceRange.min);
+    if (priceRange.max) params.append('maxPrice', priceRange.max);
+    if (loc) params.append('location', loc);
+    if (selectedCondition) params.append('condition', selectedCondition);
+
+    try {
+      // const res = await fetch(`https://funmislist-project.vercel.app/api/products?${params.toString()}`);
+      const res = await fetch(`https://funmislist-project.vercel.app/api/products?${params.toString()}`);
+      const data = await res.json();
+      if (data && data.products) {
+        onSearch(data.products);
+      } else {
+        onSearch([]);
+      }
+    } catch (err) {
+      onSearch([]);
+    }
   };
-  const handleReset = () => {
+  const handleReset = async () => {
     setSearchTerm('');
     setSelectedCategory('');
     setSelectedSubcategory('');
     setPriceRange({ min: '', max: '' });
     setLocationTerm('');
     setSelectedCondition('');
-    onSearch({
-      searchTerm: '',
-      category: '',
-      subcategory: '',
-      priceRange: { min: '', max: '' },
-      location: '',
-      condition: ''
-    });
+    try {
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      if (data && data.products) {
+        onSearch(data.products);
+      } else {
+        onSearch([]);
+      }
+    } catch (err) {
+      onSearch([]);
+    }
     setShowFilters(false);
   };
 
@@ -125,11 +142,20 @@ const SearchAndFilter = ({ onSearch }) => {
                   </label>
                   <select
                     value={selectedCategory}
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const value = e.target.value;
                       setSelectedCategory(value);
                       setSelectedSubcategory('');
-                      onSearch({ searchTerm, category: value, subcategory: '', priceRange, location: locationTerm });
+                      // Fetch filtered products from backend
+                      let params = new URLSearchParams();
+                      if (value) params.append('category', value);
+                      const res = await fetch(`https://funmislist-project.vercel.app/api/products?${params.toString()}`);
+                      const data = await res.json();
+                      if (data && data.products) {
+                        onSearch(data.products);
+                      } else {
+                        onSearch([]);
+                      }
                     }}
                     className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   >
@@ -147,10 +173,20 @@ const SearchAndFilter = ({ onSearch }) => {
                     </label>
                     <select
                       value={selectedSubcategory}
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const sub = e.target.value;
                         setSelectedSubcategory(sub);
-                        onSearch({ searchTerm, category: selectedCategory, subcategory: sub, priceRange, location: locationTerm });
+                        // Fetch filtered products from backend
+                        let params = new URLSearchParams();
+                        if (selectedCategory) params.append('category', selectedCategory);
+                        if (sub) params.append('subcategory', sub);
+                        const res = await fetch(`https://funmislist-project.vercel.app/api/products?${params.toString()}`);
+                        const data = await res.json();
+                        if (data && data.products) {
+                          onSearch(data.products);
+                        } else {
+                          onSearch([]);
+                        }
                       }}
                       className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                     >
@@ -208,17 +244,24 @@ const SearchAndFilter = ({ onSearch }) => {
                   </label>
                   <select
                     value={selectedCondition}
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const condition = e.target.value;
                       setSelectedCondition(condition);
-                      onSearch({ 
-                        searchTerm, 
-                        category: selectedCategory, 
-                        subcategory: selectedSubcategory, 
-                        priceRange, 
-                        location: locationTerm,
-                        condition
-                      });
+                      // Fetch filtered products from backend
+                      let params = new URLSearchParams();
+                      if (selectedCategory) params.append('category', selectedCategory);
+                      if (selectedSubcategory) params.append('subcategory', selectedSubcategory);
+                      if (priceRange.min) params.append('minPrice', priceRange.min);
+                      if (priceRange.max) params.append('maxPrice', priceRange.max);
+                      if (locationTerm) params.append('location', locationTerm);
+                      if (condition) params.append('condition', condition);
+                      const res = await fetch(`https://funmislist-project.vercel.app/api/products?${params.toString()}`);
+                      const data = await res.json();
+                      if (data && data.products) {
+                        onSearch(data.products);
+                      } else {
+                        onSearch([]);
+                      }
                     }}
                     className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   >

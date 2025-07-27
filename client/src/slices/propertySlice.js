@@ -5,8 +5,15 @@ export const fetchProperties = createAsyncThunk(
   'properties/fetchProperties',
   async (_, thunkAPI) => {
     try {
-      const response = await axios.get('https://funmislist-project.vercel.app/api/properties');
-      return response.data;
+      const response = await axios.get('/api/properties');
+      // Always return an array for properties
+      if (response.data && Array.isArray(response.data.properties)) {
+        return response.data.properties;
+      } else if (Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        return [];
+      }
     } catch (error) {
       return thunkAPI.rejectWithValue(error.response?.data?.message || 'Failed to fetch properties');
     }
@@ -35,7 +42,7 @@ const propertySlice = createSlice({
       })
       .addCase(fetchProperties.fulfilled, (state, action) => {
         state.loading = false;
-        state.properties = action.payload;
+        state.properties = Array.isArray(action.payload) ? action.payload : [];
         console.log('Updated Properties State:', state.properties); // Debug log
       })
       .addCase(fetchProperties.rejected, (state, action) => {
