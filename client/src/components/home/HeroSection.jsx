@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { FaStore, FaDumbbell, FaGuitar, FaHotel, FaHome, FaBriefcase, FaLaptop, FaBook, FaShoppingBag, FaPlane, FaPaw, FaFutbol, FaGlassCheers, FaSpa, FaCar, FaStethoscope, FaTree, FaTools, FaUniversity, FaFilm, FaPalette, FaCouch, FaTshirt } from 'react-icons/fa';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchCategories } from '../../slices/categorySlice';
 import React from 'react';
 
-const HeroSection = () => {  const [currentSlide, setCurrentSlide] = useState(0);
+const HeroSection = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { filteredCategories: categories } = useSelector((state) => state.categories);
 
@@ -61,11 +65,21 @@ const HeroSection = () => {  const [currentSlide, setCurrentSlide] = useState(0)
 
             {/* Search bar above category icons */}
             <div className="max-w-lg mx-auto mb-8">
-              <form onSubmit={(e) => e.preventDefault()} className="flex">
+              <form
+                onSubmit={e => {
+                  e.preventDefault();
+                  if (searchTerm.trim()) {
+                    navigate(`/shop?query=${encodeURIComponent(searchTerm.trim())}`);
+                  }
+                }}
+                className="flex"
+              >
                 <input
                   type="text"
                   placeholder="Search for listings..."
                   className="flex-grow px-4 py-2 rounded-l-full focus:outline-none"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
                 />
                 <button
                   type="submit"

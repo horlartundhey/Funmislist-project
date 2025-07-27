@@ -1,29 +1,50 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import { fetchProducts } from '../slices/productSlice';
 import { fetchCategories } from '../slices/categorySlice';
 import ProductCard from '../components/home/ProductCard';
 import SearchAndFilter from '../components/home/SearchAndFilter';
 import ShopBanner from '../components/home/ShopBanner';
 
+
 function ShopPage() {
   const dispatch = useDispatch();
+  const location = useLocation();
   const { products, loading, error } = useSelector((state) => state.products);
   const [filteredProducts, setFilteredProducts] = useState([]);
+
+  // Helper to get query param
+  const getQueryParam = (param) => {
+    const params = new URLSearchParams(location.search);
+    return params.get(param) || '';
+  };
 
   useEffect(() => {
     dispatch(fetchProducts({}));
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // initialize filteredProducts when products load
- useEffect(() => {
-  setFilteredProducts(Array.isArray(products) ? products : []);
-}, [products]);
+  // Filter products by search query from URL
+  useEffect(() => {
+    const query = getQueryParam('query').toLowerCase();
+    if (query && Array.isArray(products)) {
+      setFilteredProducts(
+        products.filter(
+          (p) =>
+            p.name?.toLowerCase().includes(query) ||
+            p.description?.toLowerCase().includes(query) ||
+            p.categoryName?.toLowerCase().includes(query)
+        )
+      );
+    } else {
+      setFilteredProducts(Array.isArray(products) ? products : []);
+    }
+  }, [products, location.search]);
 
-const handleSearch = (productsArray) => {
-  setFilteredProducts(Array.isArray(productsArray) ? productsArray : []);
-};
+  const handleSearch = (productsArray) => {
+    setFilteredProducts(Array.isArray(productsArray) ? productsArray : []);
+  };
 
   return (
     <div className="container mx-auto px-2 md:px-4 py-8">
