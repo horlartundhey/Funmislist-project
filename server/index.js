@@ -18,6 +18,8 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const propertyRoutes = require('./routes/propertyRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const userRoutes = require('./routes/userRoutes');
+const bannerRoutes = require('./routes/bannerRoutes');
+const debugRoutes = require('./routes/debugRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -58,6 +60,23 @@ app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
+// Debug route to check environment variables
+app.get('/debug/env', (req, res) => {
+  console.log('=== ENVIRONMENT DEBUG ACCESS ===');
+  console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+  console.log('GMAIL_USER:', process.env.GMAIL_USER ? 'SET' : 'NOT SET');
+  console.log('================================');
+  
+  res.json({
+    NODE_ENV: process.env.NODE_ENV,
+    FRONTEND_URL: process.env.FRONTEND_URL,
+    EMAIL_CONFIGURED: !!process.env.EMAIL_USER,
+    GMAIL_CONFIGURED: !!process.env.GMAIL_USER,
+    PORT: process.env.PORT,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Use routes
 
 app.use('/api', testRoutes);
@@ -68,6 +87,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/banners', bannerRoutes);
+app.use('/debug', debugRoutes);
 
 // Start server
 app.listen(PORT, () => {

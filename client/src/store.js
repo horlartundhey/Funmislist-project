@@ -10,6 +10,7 @@ import categoryReducer from './slices/categorySlice';
 import paymentReducer from './slices/paymentSlice';
 import propertyReducer from './slices/propertySlice';
 import transactionReducer from './slices/transactionSlice';
+import bannerReducer from './slices/bannerSlice';
 
 const rootReducer = combineReducers({
   user: userReducer,
@@ -19,6 +20,7 @@ const rootReducer = combineReducers({
   payment: paymentReducer,
   properties: propertyReducer,
   transactions: transactionReducer,
+  banners: bannerReducer,
 });
 
 const persistConfig = {

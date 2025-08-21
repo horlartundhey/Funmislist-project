@@ -9,24 +9,41 @@ const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
+    // Log registration attempt
+    console.log('\n=== REGISTRATION ATTEMPT ===');
+    console.log('Name:', name);
+    console.log('Email:', email);
+    console.log('Environment check:');
+    console.log('- NODE_ENV:', process.env.NODE_ENV);
+    console.log('- FRONTEND_URL:', process.env.FRONTEND_URL);
+    console.log('- EMAIL_USER:', process.env.EMAIL_USER ? 'Configured' : 'Not configured');
+
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      console.log('Registration failed: User already exists');
       return res.status(400).json({ message: 'User already exists' });
     }
 
     // Create new user
     const user = await User.create({ name, email, password });
+    console.log('User created successfully:', user._id);
 
     // Generate email verification token
     const verificationToken = user.generateEmailVerificationToken();
     await user.save();
+    console.log('Verification token generated:', verificationToken.substring(0, 10) + '...');
 
     // Send verification email
     try {
+      console.log('Attempting to send verification email...');
       await sendEmailVerification(user.email, user.name, verificationToken);
+      console.log('Verification email sent successfully');
     } catch (emailError) {
-      console.error('Email sending failed:', emailError);
+      console.error('=== EMAIL SENDING ERROR ===');
+      console.error('Error message:', emailError.message);
+      console.error('Error stack:', emailError.stack);
+      console.error('========================');
       // Don't fail registration if email fails
     }
 
@@ -34,6 +51,9 @@ const registerUser = async (req, res) => {
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRE,
     });
+
+    console.log('Registration completed successfully');
+    console.log('=========================\n');
 
     res.status(201).json({
       id: user._id,
@@ -45,7 +65,10 @@ const registerUser = async (req, res) => {
       message: 'Registration successful. Please check your email to verify your account.',
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('=== REGISTRATION ERROR ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('========================');
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -65,6 +88,16 @@ const loginUser = async (req, res) => {
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      return res.status(401).json({ 
+        message: 'Please verify your email before logging in',
+        needsVerification: true,
+        email: user.email,
+        name: user.name
+      });
     }
 
     // Generate token
@@ -185,29 +218,47 @@ const resendEmailVerification = async (req, res) => {
   try {
     const { email } = req.body;
 
+    console.log('\n=== RESEND VERIFICATION ATTEMPT ===');
+    console.log('Email:', email);
+    console.log('Environment check:');
+    console.log('- FRONTEND_URL:', process.env.FRONTEND_URL);
+
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('Resend failed: User not found');
       return res.status(404).json({ message: 'User not found' });
     }
 
     if (user.isEmailVerified) {
+      console.log('Resend failed: Email already verified');
       return res.status(400).json({ message: 'Email is already verified' });
     }
 
     // Generate new verification token
     const verificationToken = user.generateEmailVerificationToken();
     await user.save();
+    console.log('New verification token generated:', verificationToken.substring(0, 10) + '...');
 
     // Send verification email
     try {
+      console.log('Attempting to resend verification email...');
       await sendEmailVerification(user.email, user.name, verificationToken);
+      console.log('Verification email resent successfully');
       res.status(200).json({ message: 'Verification email sent' });
     } catch (emailError) {
-      console.error('Resend verification email failed:', emailError);
+      console.error('=== RESEND EMAIL ERROR ===');
+      console.error('Error message:', emailError.message);
+      console.error('Error stack:', emailError.stack);
+      console.error('========================');
       res.status(500).json({ message: 'Email could not be sent' });
     }
+
+    console.log('===========================\n');
   } catch (error) {
-    console.error('Resend verification error:', error);
+    console.error('=== RESEND VERIFICATION ERROR ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('==============================');
     res.status(500).json({ message: 'Server error' });
   }
 };

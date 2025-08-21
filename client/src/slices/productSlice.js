@@ -28,6 +28,64 @@ export const fetchProducts = createAsyncThunk(
   }
 );
 
+// Optimized fetch for shop/listing pages
+export const fetchProductsLean = createAsyncThunk(
+  'products/fetchProductsLean',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      let url = 'https://funmislist-project.vercel.app/api/products/lean';
+      const searchParams = new URLSearchParams();
+      
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, value.toString());
+        }
+      });
+      
+      if (searchParams.toString()) url += '?' + searchParams.toString();
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to fetch products');
+      }
+      const data = await response.json();
+      return data; // Returns { products, total, page, totalPages }
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Advanced search with relevance scoring
+export const searchProducts = createAsyncThunk(
+  'products/searchProducts',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      let url = 'https://funmislist-project.vercel.app/api/products/search';
+      const searchParams = new URLSearchParams();
+      
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, value.toString());
+        }
+      });
+      
+      if (searchParams.toString()) url += '?' + searchParams.toString();
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to search products');
+      }
+      const data = await response.json();
+      return data; // Returns { products, total, page, totalPages, searchTerm }
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 export const fetchProductById = createAsyncThunk(
   'products/fetchProductById',
   async (id, { rejectWithValue }) => {
@@ -50,12 +108,28 @@ const initialState = {
   currentProduct: null,
   loading: false,
   error: null,
+  // Pagination and search state
+  total: 0,
+  currentPage: 1,
+  totalPages: 0,
+  searchTerm: '',
 };
 
 const productSlice = createSlice({
   name: 'products',
   initialState,
-  reducers: {},
+  reducers: {
+    clearCurrentProduct: (state) => {
+      state.currentProduct = null;
+    },
+    setCurrentPage: (state, action) => {
+      state.currentPage = action.payload;
+    },
+    clearSearch: (state) => {
+      state.searchTerm = '';
+      state.currentPage = 1;
+    }
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchProducts.pending, (state) => {
@@ -68,6 +142,39 @@ const productSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchProducts.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(fetchProductsLean.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchProductsLean.fulfilled, (state, action) => {
+        state.loading = false;
+        state.products = action.payload.products || [];
+        state.total = action.payload.total || 0;
+        state.currentPage = action.payload.page || 1;
+        state.totalPages = action.payload.totalPages || 0;
+        state.error = null;
+      })
+      .addCase(fetchProductsLean.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(searchProducts.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(searchProducts.fulfilled, (state, action) => {
+        state.loading = false;
+        state.products = action.payload.products || [];
+        state.total = action.payload.total || 0;
+        state.currentPage = action.payload.page || 1;
+        state.totalPages = action.payload.totalPages || 0;
+        state.searchTerm = action.payload.searchTerm || '';
+        state.error = null;
+      })
+      .addCase(searchProducts.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
@@ -87,4 +194,5 @@ const productSlice = createSlice({
   },
 });
 
+export const { clearCurrentProduct, setCurrentPage, clearSearch } = productSlice.actions;
 export default productSlice.reducer;

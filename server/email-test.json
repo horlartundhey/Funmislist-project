@@ -1,0 +1,62 @@
+{
+  "test_scenarios": {
+    "1_register_new_user": {
+      "method": "POST",
+      "url": "http://localhost:5000/api/auth/register",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "name": "Test User Debug",
+        "email": "testdebug@example.com",
+        "password": "Password123!"
+      },
+      "description": "Test user registration and email verification URL generation"
+    },
+    "2_resend_verification": {
+      "method": "POST", 
+      "url": "http://localhost:5000/api/auth/resend-verification",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "email": "testdebug@example.com"
+      },
+      "description": "Test resending verification email to see if URL is properly generated"
+    },
+    "3_check_environment": {
+      "method": "GET",
+      "url": "http://localhost:5000/debug/env",
+      "headers": {},
+      "description": "Check if environment variables are properly loaded"
+    }
+  },
+  "powershell_commands": {
+    "register_user": "$body = '{\"name\": \"Test User Debug\", \"email\": \"testdebug@example.com\", \"password\": \"Password123!\"}'; Invoke-WebRequest -Uri 'http://localhost:5000/api/auth/register' -Method POST -Body $body -ContentType 'application/json'",
+    "resend_verification": "$body = '{\"email\": \"testdebug@example.com\"}'; Invoke-WebRequest -Uri 'http://localhost:5000/api/auth/resend-verification' -Method POST -Body $body -ContentType 'application/json'",
+    "check_env": "Invoke-WebRequest -Uri 'http://localhost:5000/debug/env' -Method GET"
+  },
+  "curl_commands": {
+    "register_user": "curl -X POST http://localhost:5000/api/auth/register -H \"Content-Type: application/json\" -d '{\"name\": \"Test User Debug\", \"email\": \"testdebug@example.com\", \"password\": \"Password123!\"}'",
+    "resend_verification": "curl -X POST http://localhost:5000/api/auth/resend-verification -H \"Content-Type: application/json\" -d '{\"email\": \"testdebug@example.com\"}'",
+    "check_env": "curl -X GET http://localhost:5000/debug/env"
+  },
+  "expected_results": {
+    "successful_registration": {
+      "status": 201,
+      "body_contains": ["id", "name", "email", "role", "token", "message"],
+      "console_logs": [
+        "=== REGISTRATION ATTEMPT ===",
+        "FRONTEND_URL: http://localhost:5173",
+        "Verification token generated:",
+        "Attempting to send verification email...",
+        "Verification email sent successfully"
+      ]
+    },
+    "error_indicators": {
+      "undefined_url": "Look for 'undefined' in email logs or email content",
+      "environment_issues": "FRONTEND_URL should show 'http://localhost:5173'",
+      "email_service_error": "=== EMAIL SENDING ERROR === in console"
+    }
+  }
+}

@@ -81,6 +81,226 @@ const getProducts = async (req, res) => {
   }
 };
 
+// Lean endpoint for product listings (optimized for shop/listing pages)
+const getProductsLean = async (req, res) => {
+  try {
+    const { category, subcategory, condition, searchTerm, minPrice, maxPrice, location, page = 1, limit = 20 } = req.query;
+    let query = { published: true }; // Only published products for public listings
+
+    // Build search query with weighted scoring
+    const searchOptions = [];
+    if (searchTerm) {
+      const searchRegex = { $regex: searchTerm, $options: 'i' };
+      
+      // Weighted search - exact name matches score higher
+      searchOptions.push(
+        { name: searchRegex },
+        { description: searchRegex },
+        { subcategory: searchRegex }
+      );
+      
+      // Add text search if available
+      query.$or = searchOptions;
+    }
+
+    // Category filter
+    if (category) {
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        query.category = new mongoose.Types.ObjectId(category);
+      } else {
+        const catDoc = await Category.findOne({
+          name: { $regex: new RegExp('^' + category.replace(/-/g, ' ') + '$', 'i') }
+        });
+        if (catDoc) {
+          query.category = catDoc._id;
+        } else {
+          return res.status(200).json({ products: [], total: 0 });
+        }
+      }
+    }
+
+    // Subcategory filter
+    if (subcategory) {
+      const subcategoryPattern = subcategory.includes('-') 
+        ? subcategory.replace(/-/g, ' ') 
+        : subcategory;
+      query.subcategory = { $regex: new RegExp(subcategoryPattern, 'i') };
+    }
+
+    // Condition filter
+    if (condition) {
+      query.condition = condition;
+    }
+
+    // Price range filter
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+
+    // Location filter
+    if (location) {
+      query.$or = [
+        ...(query.$or || []),
+        { 'location.city': { $regex: location, $options: 'i' } },
+        { 'location.address': { $regex: location, $options: 'i' } }
+      ];
+    }
+
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Lean query - only essential fields for listing
+    const products = await Product.find(query)
+      .select('name price images condition location.city category subcategory stock createdAt')
+      .populate('category', 'name')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    // Optimize images - only return first image for listings
+    const optimizedProducts = products.map(product => ({
+      ...product,
+      images: product.images && product.images.length > 0 ? [product.images[0]] : []
+    }));
+
+    // Get total count for pagination
+    const total = await Product.countDocuments(query);
+
+    res.status(200).json({
+      products: optimizedProducts,
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(limit))
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Advanced search with relevance scoring
+const searchProducts = async (req, res) => {
+  try {
+    const { q: searchTerm, category, minPrice, maxPrice, condition, location, page = 1, limit = 20 } = req.query;
+    
+    if (!searchTerm) {
+      return res.status(400).json({ message: 'Search term is required' });
+    }
+
+    let pipeline = [];
+    
+    // Match stage - basic filtering
+    const matchStage = { published: true };
+    
+    if (category) {
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        matchStage.category = new mongoose.Types.ObjectId(category);
+      }
+    }
+    
+    if (condition) matchStage.condition = condition;
+    if (minPrice || maxPrice) {
+      matchStage.price = {};
+      if (minPrice) matchStage.price.$gte = Number(minPrice);
+      if (maxPrice) matchStage.price.$lte = Number(maxPrice);
+    }
+    
+    if (location) {
+      matchStage.$or = [
+        { 'location.city': { $regex: location, $options: 'i' } },
+        { 'location.address': { $regex: location, $options: 'i' } }
+      ];
+    }
+
+    pipeline.push({ $match: matchStage });
+
+    // Add relevance scoring
+    pipeline.push({
+      $addFields: {
+        relevanceScore: {
+          $add: [
+            // Name exact match gets highest score (10 points)
+            { $cond: [{ $regexMatch: { input: "$name", regex: new RegExp(`^${searchTerm}$`, 'i') } }, 10, 0] },
+            // Name contains search term (5 points)
+            { $cond: [{ $regexMatch: { input: "$name", regex: new RegExp(searchTerm, 'i') } }, 5, 0] },
+            // Subcategory match (3 points)
+            { $cond: [{ $regexMatch: { input: "$subcategory", regex: new RegExp(searchTerm, 'i') } }, 3, 0] },
+            // Description contains search term (1 point)
+            { $cond: [{ $regexMatch: { input: "$description", regex: new RegExp(searchTerm, 'i') } }, 1, 0] }
+          ]
+        }
+      }
+    });
+
+    // Filter out irrelevant results (score 0)
+    pipeline.push({ $match: { relevanceScore: { $gt: 0 } } });
+
+    // Sort by relevance score (highest first), then by creation date
+    pipeline.push({ $sort: { relevanceScore: -1, createdAt: -1 } });
+
+    // Populate category
+    pipeline.push({
+      $lookup: {
+        from: 'categories',
+        localField: 'category',
+        foreignField: '_id',
+        as: 'category'
+      }
+    });
+
+    pipeline.push({
+      $unwind: { path: '$category', preserveNullAndEmptyArrays: true }
+    });
+
+    // Project only needed fields
+    pipeline.push({
+      $project: {
+        name: 1,
+        price: 1,
+        images: 1,
+        condition: 1,
+        'location.city': 1,
+        'category.name': 1,
+        subcategory: 1,
+        stock: 1,
+        relevanceScore: 1,
+        createdAt: 1
+      }
+    });
+
+    // Add pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: parseInt(limit) });
+
+    const products = await Product.aggregate(pipeline);
+
+    // Optimize images - only return first image for listings
+    const optimizedProducts = products.map(product => ({
+      ...product,
+      images: product.images && product.images.length > 0 ? [product.images[0]] : []
+    }));
+
+    // Get total count
+    const countPipeline = pipeline.slice(0, -2); // Remove skip and limit
+    countPipeline.push({ $count: "total" });
+    const countResult = await Product.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    res.status(200).json({
+      products: optimizedProducts,
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(limit)),
+      searchTerm
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 // Get a single product by ID
 const getProductById = async (req, res) => {
   try {
@@ -289,6 +509,8 @@ const togglePublish = async (req, res) => {
 
 module.exports = {
   getProducts,
+  getProductsLean,
+  searchProducts,
   getProductById,
   createProduct,
   updateProduct,

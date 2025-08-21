@@ -1,10 +1,16 @@
 const express = require('express');
-const { getProducts, createProduct, updateProduct, getProductById, deleteProduct, adjustStock, togglePublish } = require('../controllers/productController');
+const { getProducts, getProductsLean, searchProducts, createProduct, updateProduct, getProductById, deleteProduct, adjustStock, togglePublish } = require('../controllers/productController');
 const { protect, admin } = require('../middleware/authMiddleware');
 const { upload } = require('../config/cloudinary');
 const router = express.Router();
 
-// Get all products
+// Lean products endpoint for optimized listings
+router.get('/lean', getProductsLean);
+
+// Advanced search endpoint
+router.get('/search', searchProducts);
+
+// Get all products (full data)
 router.get('/', getProducts);
 
 // Get a product by ID

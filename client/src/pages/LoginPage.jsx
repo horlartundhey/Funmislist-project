@@ -8,6 +8,9 @@ function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [resendingVerification, setResendingVerification] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -41,6 +44,7 @@ function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    setNeedsVerification(false);
     
     try {
       const response = await fetch('https://funmislist-project.vercel.app/api/auth/login', {
@@ -51,12 +55,18 @@ function LoginPage() {
 
       const data = await response.json();
       console.log('Login API response:', data);
+      
       if (response.ok) {
         // Pass the entire data object to login action
         dispatch(login({ 
           userInfo: data,
           token: data.token 
         }));
+      } else if (data.needsVerification) {
+        // Handle email verification required
+        setNeedsVerification(true);
+        setUserEmail(data.email);
+        setError(data.message);
       } else {
         setError(data.message || 'Login failed');
       }
@@ -65,6 +75,32 @@ function LoginPage() {
       setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendingVerification(true);
+    setError(null);
+
+    try {
+      const response = await fetch('https://funmislist-project.vercel.app/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setError('Verification email sent! Please check your inbox.');
+      } else {
+        setError(data.message || 'Failed to send verification email');
+      }
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      setError('Network error. Please try again.');
+    } finally {
+      setResendingVerification(false);
     }
   };
 
@@ -89,6 +125,18 @@ function LoginPage() {
         {error && (
           <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded relative" role="alert">
             <span className="block sm:inline">{error}</span>
+            {needsVerification && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resendingVerification}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white font-medium py-2 px-4 rounded text-sm"
+                >
+                  {resendingVerification ? 'Sending...' : 'Resend Verification Email'}
+                </button>
+              </div>
+            )}
           </div>
         )}
         

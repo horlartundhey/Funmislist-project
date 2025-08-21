@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProducts } from '../../slices/productSlice';
+import { fetchProductsLean } from '../../slices/productSlice';
 import ProductCard from './ProductCard';
 import { Link } from 'react-router-dom';
 
@@ -9,11 +9,9 @@ const FeaturedProducts = () => {
   const { products, loading, error } = useSelector((state) => state.products);
   
   useEffect(() => {
-    dispatch(fetchProducts({}));
+    // Use lean endpoint with limit for homepage
+    dispatch(fetchProductsLean({ limit: 8 }));
   }, [dispatch]);
-
-  // Take only first 8 products for featured section
-  const featuredProducts = products.slice(0, 8);
 
   if (loading) {
     return (
@@ -44,7 +42,7 @@ const FeaturedProducts = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((product) => (
+          {products.map((product) => (
             <div
               key={product._id}
               className="animate-fade-in"
