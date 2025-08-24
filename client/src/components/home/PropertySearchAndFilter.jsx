@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { FaSearch, FaSlidersH } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE_URL } from '../../config/api';
 
 const PropertySearchAndFilter = ({ onSearch }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,7 +33,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
     const fetchInitial = async () => {
       if (realEstateCategory && selectedCategory === realEstateCategory._id) {
         try {
-          const res = await fetch(`https://funmislist-project.vercel.app/api/properties?category=${realEstateCategory._id}`);
+          const res = await fetch(`${API_BASE_URL}/properties?category=${realEstateCategory._id}`);
           const data = await res.json();
           if (Array.isArray(data.properties)) {
             onSearch(data.properties);
@@ -75,7 +76,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
     if (loc) params.append('location', loc);
 
     try {
-      const res = await fetch(`https://funmislist-project.vercel.app/api/properties?${params.toString()}`);
+      const res = await fetch(`${API_BASE_URL}/properties?${params.toString()}`);
       const data = await res.json();
       if (Array.isArray(data.properties)) {
         onSearch(data.properties);
@@ -98,7 +99,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
     setPriceRange({ min: '', max: '' });
     setLocationTerm('');
     try {
-      const res = await fetch(`https://funmislist-project.vercel.app/api/properties?category=${realEstateCategory?._id || ''}`);
+      const res = await fetch(`${API_BASE_URL}/properties?category=${realEstateCategory?._id || ''}`);
       const data = await res.json();
       if (Array.isArray(data.properties)) {
         onSearch(data.properties);
@@ -185,7 +186,7 @@ const PropertySearchAndFilter = ({ onSearch }) => {
                       if (priceRange.max) params.append('maxPrice', priceRange.max);
                       if (locationTerm) params.append('location', locationTerm);
                       try {
-                        const res = await fetch(`https://funmislist-project.vercel.app/api/properties?${params.toString()}`);
+                        const res = await fetch(`${API_BASE_URL}/properties?${params.toString()}`);
                         const data = await res.json();
                         if (data && Array.isArray(data.properties)) {
                           onSearch(data.properties);

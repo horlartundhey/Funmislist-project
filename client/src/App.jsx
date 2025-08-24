@@ -40,7 +40,7 @@ function Layout() {
           <Route path="/category" element={<CategoryPage />} />
           <Route path="/category/:name" element={<CategoryPage />} />
           <Route path="/category/:name/:subcategory" element={<CategoryPage />} />
-          <Route path="/product/:id" element={<ProductDetailsPage />} />
+          <Route path="/product/:slug" element={<ProductDetailsPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route
             path="/checkout"

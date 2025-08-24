@@ -5,6 +5,7 @@ import axios from 'axios';
 import { formatDate } from '../utils/dateFormatter';
 import formatCurrency from '../utils/formatCurrency';
 import { initiatePayment } from '../slices/paymentSlice';
+import { API_BASE_URL } from '../config/api';
 
 function PropertyDetailsPage() {
   const { id } = useParams();
@@ -22,7 +23,7 @@ function PropertyDetailsPage() {
         const config = {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         };
-        const res = await axios.get(`https://funmislist-project.vercel.app/api/properties/${id}`, config);
+        const res = await axios.get(`${API_BASE_URL}/properties/${id}`, config);
         setProperty(res.data);
         setLoading(false);
       } catch (error) {
@@ -40,7 +41,7 @@ function PropertyDetailsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`https://funmislist-project.vercel.app/api/properties/${id}/appointment`, appointment, {
+      await axios.post(`${API_BASE_URL}/properties/${id}/appointment`, appointment, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBookingMsg('Appointment booked successfully!');

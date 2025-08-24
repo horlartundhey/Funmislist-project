@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const { upload } = require('../config/cloudinary');
 const Category = require('../models/Category');
 const { logDebug, findSimilarStrings } = require('../utils/debugHelper');
+const { generateUniqueSlug } = require('../utils/slugify');
 
 // Get all products with optional category filter
 const getProducts = async (req, res) => {
@@ -153,7 +154,7 @@ const getProductsLean = async (req, res) => {
 
     // Lean query - only essential fields for listing
     const products = await Product.find(query)
-      .select('name price images condition location.city category subcategory stock createdAt')
+      .select('name slug price images condition location.city category subcategory stock createdAt')
       .populate('category', 'name')
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -258,6 +259,7 @@ const searchProducts = async (req, res) => {
     pipeline.push({
       $project: {
         name: 1,
+        slug: 1,
         price: 1,
         images: 1,
         condition: 1,
@@ -301,11 +303,22 @@ const searchProducts = async (req, res) => {
   }
 };
 
-// Get a single product by ID
+// Get a single product by ID or slug
 const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await Product.findById(id).populate('category');
+    let product;
+    
+    // Check if the parameter is a valid MongoDB ObjectId
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      // Try to find by ID first
+      product = await Product.findById(id).populate('category');
+    }
+    
+    // If not found by ID or not a valid ObjectId, try to find by slug
+    if (!product) {
+      product = await Product.findOne({ slug: id }).populate('category');
+    }
     
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
@@ -372,6 +385,9 @@ const createProduct = async (req, res) => {
     const normalizedSubcategory = await validateSubcategory(category, subcategory);
     logDebug(`Normalized subcategory: "${normalizedSubcategory}" (original: "${subcategory}")`);
     
+    // Generate unique slug from product name
+    const slug = await generateUniqueSlug(name, null, Product);
+    
     // Upload images to Cloudinary
     const imageUrls = req.files.map((file) => {
       if (process.env.USE_LOCAL_STORAGE === 'true') {
@@ -381,6 +397,7 @@ const createProduct = async (req, res) => {
       return file.path;
     });    const product = await Product.create({
       name,
+      slug,
       description,
       price,
       category,
@@ -414,7 +431,14 @@ const updateProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }    // Update fields
+    const oldName = product.name;
     product.name = name || product.name;
+    
+    // Regenerate slug if name changed
+    if (name && name !== oldName) {
+      product.slug = await generateUniqueSlug(name, product.slug, Product);
+    }
+    
     product.description = description || product.description;
     product.price = price || product.price;
     product.category = category || product.category;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { API_BASE_URL } from '../config/api';
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
@@ -23,7 +24,7 @@ const PaymentSuccessPage = () => {
       return;
     }
     // Call backend to verify payment for either product or property
-    fetch(`https://funmislist-project.vercel.app/api/payments/verify?reference=${reference}&itemType=${itemType}&itemId=${itemId}`, {
+    fetch(`${API_BASE_URL}/payments/verify?reference=${reference}&itemType=${itemType}&itemId=${itemId}`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,

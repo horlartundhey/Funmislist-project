@@ -1,11 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { API_BASE_URL } from '../config/api.js';
 
 export const fetchUserTransactions = createAsyncThunk(
   'transactions/fetchUserTransactions',
   async (_, { getState, rejectWithValue }) => {
     try {
       const token = getState().user.token;
-      const response = await fetch('https://funmislist-project.vercel.app/api/users/me/transactions', {
+      const response = await fetch(`${API_BASE_URL}/users/me/transactions`, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,

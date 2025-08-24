@@ -1,11 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api.js';
 
 export const fetchProperties = createAsyncThunk(
   'properties/fetchProperties',
   async (_, thunkAPI) => {
     try {
-      const response = await axios.get('https://funmislist-project.vercel.app/api/properties');
+      const response = await axios.get(`${API_BASE_URL}/properties`);
       // Always return an array for properties
       if (response.data && Array.isArray(response.data.properties)) {
         return response.data.properties;

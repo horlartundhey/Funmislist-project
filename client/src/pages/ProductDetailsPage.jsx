@@ -7,16 +7,16 @@ import { toast } from 'react-toastify';
 import formatCurrency from '../utils/formatCurrency';
 
 const ProductDetailsPage = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const dispatch = useDispatch();
   const { currentProduct, loading, error } = useSelector(state => state.products);
   const [selectedImage, setSelectedImage] = useState(0);
 
   useEffect(() => {
-    if (id) {
-      dispatch(fetchProductById(id));
+    if (slug) {
+      dispatch(fetchProductById(slug));
     }
-  }, [dispatch, id]);
+  }, [dispatch, slug]);
 
   const handleAddToCart = () => {
     if (currentProduct) {

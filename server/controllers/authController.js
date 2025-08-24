@@ -124,8 +124,13 @@ const verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
     
+    console.log('\n=== EMAIL VERIFICATION ATTEMPT ===');
+    console.log('Raw token received:', token);
+    console.log('Token length:', token ? token.length : 'null');
+    
     // Hash the token to compare with stored hash
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    console.log('Hashed token:', hashedToken);
     
     // Find user with this token and check if it's not expired
     const user = await User.findOne({
@@ -133,7 +138,16 @@ const verifyEmail = async (req, res) => {
       emailVerificationExpires: { $gt: Date.now() },
     });
 
+    console.log('User found:', user ? 'Yes' : 'No');
+    if (user) {
+      console.log('User email:', user.email);
+      console.log('Token expires:', user.emailVerificationExpires);
+      console.log('Current time:', new Date());
+    }
+
     if (!user) {
+      console.log('Verification failed: Invalid or expired token');
+      console.log('=================================\n');
       return res.status(400).json({ message: 'Invalid or expired verification token' });
     }
 
@@ -143,9 +157,14 @@ const verifyEmail = async (req, res) => {
     user.emailVerificationExpires = undefined;
     await user.save();
 
+    console.log('Email verification successful');
+    console.log('=================================\n');
     res.status(200).json({ message: 'Email verified successfully' });
   } catch (error) {
-    console.error('Email verification error:', error);
+    console.error('=== EMAIL VERIFICATION ERROR ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('===============================');
     res.status(500).json({ message: 'Server error' });
   }
 };

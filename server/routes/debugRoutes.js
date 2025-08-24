@@ -42,7 +42,7 @@ router.get('/email-test', (req, res) => {
     res.json({
       message: 'Email service test completed',
       frontend_url: process.env.FRONTEND_URL,
-      test_verification_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${testToken}`,
+      test_verification_url: `${process.env.FRONTEND_URL || 'https://funmislist-project.vercel.app'}/verify-email?token=${testToken}`,
       timestamp: new Date().toISOString()
     });
   } catch (error) {

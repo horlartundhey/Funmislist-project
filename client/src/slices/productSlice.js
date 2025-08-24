@@ -1,10 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { API_BASE_URL } from '../config/api.js';
 
 export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
   async ({ category, subcategory, condition } = {}, { rejectWithValue }) => {
     try {
-      let url = 'https://funmislist-project.vercel.app/api/products';
+      let url = `${API_BASE_URL}/products`;
       const params = new URLSearchParams();
       if (category) params.append('category', category);
       if (subcategory) params.append('subcategory', subcategory);
@@ -33,7 +34,7 @@ export const fetchProductsLean = createAsyncThunk(
   'products/fetchProductsLean',
   async (params = {}, { rejectWithValue }) => {
     try {
-      let url = 'https://funmislist-project.vercel.app/api/products/lean';
+      let url = `${API_BASE_URL}/products/lean`;
       const searchParams = new URLSearchParams();
       
       Object.entries(params).forEach(([key, value]) => {
@@ -62,7 +63,7 @@ export const searchProducts = createAsyncThunk(
   'products/searchProducts',
   async (params = {}, { rejectWithValue }) => {
     try {
-      let url = 'https://funmislist-project.vercel.app/api/products/search';
+      let url = `${API_BASE_URL}/products/search`;
       const searchParams = new URLSearchParams();
       
       Object.entries(params).forEach(([key, value]) => {
@@ -90,7 +91,7 @@ export const fetchProductById = createAsyncThunk(
   'products/fetchProductById',
   async (id, { rejectWithValue }) => {
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${id}`);
+      const response = await fetch(`${API_BASE_URL}/products/${id}`);
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.message || 'Failed to fetch product');

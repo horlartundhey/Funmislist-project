@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { FaSearch, FaSlidersH } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE_URL } from '../../config/api';
 
 const SearchAndFilter = ({ onSearch }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,8 +38,8 @@ const SearchAndFilter = ({ onSearch }) => {
     if (selectedCondition) params.append('condition', selectedCondition);
 
     try {
-      // const res = await fetch(`https://funmislist-project.vercel.app/api/products?${params.toString()}`);
-      const res = await fetch(`https://funmislist-project.vercel.app/api/products?${params.toString()}`);
+      // const res = await fetch(`${API_BASE_URL}/products?${params.toString()}`);
+      const res = await fetch(`${API_BASE_URL}/products?${params.toString()}`);
       const data = await res.json();
       if (data && data.products) {
         onSearch(data.products);
@@ -57,7 +58,7 @@ const SearchAndFilter = ({ onSearch }) => {
     setLocationTerm('');
     setSelectedCondition('');
     try {
-      const res = await fetch('https://funmislist-project.vercel.app/api/products');
+      const res = await fetch('${API_BASE_URL}/products');
       const data = await res.json();
       if (data && data.products) {
         onSearch(data.products);
@@ -149,7 +150,7 @@ const SearchAndFilter = ({ onSearch }) => {
                       // Fetch filtered products from backend
                       let params = new URLSearchParams();
                       if (value) params.append('category', value);
-                      const res = await fetch(`https://funmislist-project.vercel.app/api/products?${params.toString()}`);
+                      const res = await fetch(`${API_BASE_URL}/products?${params.toString()}`);
                       const data = await res.json();
                       if (data && data.products) {
                         onSearch(data.products);
@@ -180,7 +181,7 @@ const SearchAndFilter = ({ onSearch }) => {
                         let params = new URLSearchParams();
                         if (selectedCategory) params.append('category', selectedCategory);
                         if (sub) params.append('subcategory', sub);
-                        const res = await fetch(`https://funmislist-project.vercel.app/api/products?${params.toString()}`);
+                        const res = await fetch(`${API_BASE_URL}/products?${params.toString()}`);
                         const data = await res.json();
                         if (data && data.products) {
                           onSearch(data.products);
@@ -255,7 +256,7 @@ const SearchAndFilter = ({ onSearch }) => {
                       if (priceRange.max) params.append('maxPrice', priceRange.max);
                       if (locationTerm) params.append('location', locationTerm);
                       if (condition) params.append('condition', condition);
-                      const res = await fetch(`https://funmislist-project.vercel.app/api/products?${params.toString()}`);
+                      const res = await fetch(`${API_BASE_URL}/products?${params.toString()}`);
                       const data = await res.json();
                       if (data && data.products) {
                         onSearch(data.products);

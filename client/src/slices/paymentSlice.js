@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api.js';
 
 export const initiatePayment = createAsyncThunk(
   'payment/initiate',
@@ -7,7 +8,7 @@ export const initiatePayment = createAsyncThunk(
     try {
       const { token } = getState().user;
       const response = await axios.post(
-        'https://funmislist-project.vercel.app/api/payments/initiate',
+        `${API_BASE_URL}/payments/initiate`,
         {
           email: paymentData.userEmail,
           amount: paymentData.total,

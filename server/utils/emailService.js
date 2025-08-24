@@ -39,10 +39,10 @@ const sendEmailVerification = async (email, name, token) => {
     length: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.length : 0
   });
   
-  // If FRONTEND_URL is not set or is undefined, use localhost
+  // If FRONTEND_URL is not set or is undefined, use production URL
   if (!baseUrl || baseUrl === 'undefined' || baseUrl.trim() === '') {
-    baseUrl = 'http://localhost:5173';
-    logger.warn('FRONTEND_URL not properly configured, using fallback', { 
+    baseUrl = 'https://funmislist-project.vercel.app';
+    logger.warn('FRONTEND_URL not properly configured, using production fallback', { 
       original: process.env.FRONTEND_URL,
       fallback: baseUrl 
     });
@@ -121,10 +121,10 @@ const sendPasswordReset = async (email, name, token) => {
   // Ensure we have a proper base URL - check multiple fallbacks
   let baseUrl = process.env.FRONTEND_URL;
   
-  // If FRONTEND_URL is not set or is undefined, use localhost
+  // If FRONTEND_URL is not set or is undefined, use production URL
   if (!baseUrl || baseUrl === 'undefined' || baseUrl.trim() === '') {
-    baseUrl = 'http://localhost:5173';
-    console.warn('FRONTEND_URL not properly configured, using fallback:', baseUrl);
+    baseUrl = 'https://funmislist-project.vercel.app';
+    console.warn('FRONTEND_URL not properly configured, using production fallback:', baseUrl);
   }
   
   const resetUrl = `${baseUrl}/reset-password/${token}`;

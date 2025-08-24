@@ -1,11 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { API_BASE_URL } from '../config/api.js';
 
 // Fetch banners by position (public endpoint)
 export const fetchBannersByPosition = createAsyncThunk(
   'banners/fetchByPosition',
   async (position, { rejectWithValue }) => {
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/banners/position/${position}`);
+      const response = await fetch(`${API_BASE_URL}/banners/position/${position}`);
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.message || 'Failed to fetch banners');
@@ -30,7 +31,7 @@ export const fetchAllBanners = createAsyncThunk(
         throw new Error('No authentication token');
       }
 
-      let url = 'https://funmislist-project.vercel.app/api/banners';
+      let url = `${API_BASE_URL}/banners`;
       const searchParams = new URLSearchParams();
       
       Object.entries(params).forEach(([key, value]) => {
@@ -80,7 +81,7 @@ export const createBanner = createAsyncThunk(
         }
       });
 
-      const response = await fetch('https://funmislist-project.vercel.app/api/banners', {
+      const response = await fetch(`${API_BASE_URL}/banners`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -120,7 +121,7 @@ export const updateBanner = createAsyncThunk(
         }
       });
 
-      const response = await fetch(`https://funmislist-project.vercel.app/api/banners/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/banners/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -153,7 +154,7 @@ export const deleteBanner = createAsyncThunk(
         throw new Error('No authentication token');
       }
 
-      const response = await fetch(`https://funmislist-project.vercel.app/api/banners/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/banners/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -185,7 +186,7 @@ export const toggleBannerStatus = createAsyncThunk(
         throw new Error('No authentication token');
       }
 
-      const response = await fetch(`https://funmislist-project.vercel.app/api/banners/${id}/toggle`, {
+      const response = await fetch(`${API_BASE_URL}/banners/${id}/toggle`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

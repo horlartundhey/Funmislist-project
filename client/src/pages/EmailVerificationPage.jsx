@@ -1,16 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FaCheckCircle, FaTimesCircle, FaSpinner } from 'react-icons/fa';
+import { API_BASE_URL } from '../config/api.js';
 
 function EmailVerificationPage() {
   const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error'
   const [message, setMessage] = useState('');
   const { token } = useParams();
+  const hasVerified = useRef(false); // Prevent duplicate requests
 
   useEffect(() => {
     const verifyEmail = async () => {
+      // Prevent duplicate verification attempts
+      if (hasVerified.current) return;
+      hasVerified.current = true;
+
       try {
-        const response = await fetch(`https://funmislist-project.vercel.app/api/auth/verify-email/${token}`);
+        const response = await fetch(`${API_BASE_URL}/auth/verify-email/${token}`);
         const data = await response.json();
         
         if (response.ok) {
@@ -27,9 +33,9 @@ function EmailVerificationPage() {
       }
     };
 
-    if (token) {
+    if (token && !hasVerified.current) {
       verifyEmail();
-    } else {
+    } else if (!token) {
       setStatus('error');
       setMessage('Invalid verification link');
     }
@@ -118,7 +124,7 @@ function ResendVerificationButton() {
     setMessage('');
 
     try {
-      const response = await fetch('https://funmislist-project.vercel.app/api/auth/resend-verification', {
+      const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

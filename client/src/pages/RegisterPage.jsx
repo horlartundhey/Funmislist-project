@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaEye, FaEyeSlash, FaCheck, FaTimes } from 'react-icons/fa';
 import { validatePassword, validateEmail, validateName } from '../utils/validation';
+import { API_BASE_URL } from '../config/api.js';
 
 function RegisterPage() {
   const [name, setName] = useState('');
@@ -52,7 +53,7 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('https://funmislist-project.vercel.app/api/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),

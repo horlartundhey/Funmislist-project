@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../slices/userSlice';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api.js';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
@@ -47,7 +48,7 @@ function LoginPage() {
     setNeedsVerification(false);
     
     try {
-      const response = await fetch('https://funmislist-project.vercel.app/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -83,7 +84,7 @@ function LoginPage() {
     setError(null);
 
     try {
-      const response = await fetch('https://funmislist-project.vercel.app/api/auth/resend-verification', {
+      const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail }),

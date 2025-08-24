@@ -2,12 +2,15 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useState, useEffect } from 'react';
 import { updateProfile } from '../slices/userSlice';
 import { fetchUserTransactions } from '../slices/transactionSlice';
+import { formatOrderNumber, getOrderNumberClasses, copyOrderNumber } from '../utils/orderUtils';
+import { FaCopy, FaCheck } from 'react-icons/fa';
 
 function UserDashboardPage() {
   const { userInfo } = useSelector((state) => state.user);
   const { transactions, loading, error } = useSelector((state) => state.transactions);
   const dispatch = useDispatch();
   const [editing, setEditing] = useState(false);
+  const [copiedOrderId, setCopiedOrderId] = useState(null);
   const [name, setName] = useState(userInfo?.name || '');
   const [email, setEmail] = useState(userInfo?.email || '');
   const [password, setPassword] = useState('');
@@ -21,6 +24,15 @@ function UserDashboardPage() {
   useEffect(() => {
   console.log('Transactions Data:', transactions);
 }, [transactions]);
+
+  // Handle copying order number to clipboard
+  const handleCopyOrderNumber = async (orderNumber) => {
+    const success = await copyOrderNumber(orderNumber);
+    if (success) {
+      setCopiedOrderId(orderNumber);
+      setTimeout(() => setCopiedOrderId(null), 2000);
+    }
+  };
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -105,7 +117,7 @@ function UserDashboardPage() {
           <table className="w-full border-collapse border border-gray-300">
             <thead>
               <tr>
-                <th className="border border-gray-300 p-2">Order ID</th>
+                <th className="border border-gray-300 p-2">Order Number</th>
                 <th className="border border-gray-300 p-2">Product/Property ID</th>
                 <th className="border border-gray-300 p-2">Item</th>
                 <th className="border border-gray-300 p-2">Amount</th>
@@ -116,7 +128,24 @@ function UserDashboardPage() {
             <tbody>
               {transactions.map((tx) => (
                 <tr key={tx._id}>
-                  <td className="border border-gray-300 p-2 text-center">{tx._id}</td>
+                  <td className="border border-gray-300 p-2 text-center">
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className={getOrderNumberClasses(tx.status)}>
+                        {formatOrderNumber(tx)}
+                      </span>
+                      <button
+                        onClick={() => handleCopyOrderNumber(formatOrderNumber(tx))}
+                        className="text-gray-400 hover:text-blue-600 transition-colors p-1"
+                        title="Copy order number"
+                      >
+                        {copiedOrderId === formatOrderNumber(tx) ? (
+                          <FaCheck className="text-green-600" />
+                        ) : (
+                          <FaCopy className="text-xs" />
+                        )}
+                      </button>
+                    </div>
+                  </td>
                   <td className="border border-gray-300 p-2 text-center">
                     {tx.product?._id || tx.property?._id || '-'}
                   </td>
@@ -124,7 +153,15 @@ function UserDashboardPage() {
                     {tx.product?.name || tx.property?.name || '-'}
                   </td>
                   <td className="border border-gray-300 p-2 text-center">${tx.amount}</td>
-                  <td className="border border-gray-300 p-2 text-center">{tx.status}</td>
+                  <td className="border border-gray-300 p-2 text-center">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      tx.status === 'success' ? 'bg-green-100 text-green-800' :
+                      tx.status === 'failed' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {tx.status}
+                    </span>
+                  </td>
                   <td className="border border-gray-300 p-2 text-center">{new Date(tx.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))}

@@ -78,8 +78,8 @@ app.get('/debug/env', (req, res) => {
 });
 
 // Use routes
-
-app.use('/api', testRoutes);
+console.log('Registering test routes at /api/test');
+app.use('/api/test', testRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/products', productRoutes);

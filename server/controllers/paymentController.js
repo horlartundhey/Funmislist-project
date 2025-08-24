@@ -7,7 +7,10 @@ const initiatePayment = async (req, res) => {
     return res.status(400).json({ message: 'Email, amount, itemType, and itemId are required' });
   }
   try {
-    const callbackUrl = `https://funmislist-project-sgb3.vercel.app/payment-success?itemType=${itemType}&itemId=${itemId}`;
+    // Use environment variable for callback URL, fallback to production URL
+    const baseUrl = process.env.FRONTEND_URL || 'https://funmislist-project.vercel.app';
+    const callbackUrl = `${baseUrl}/payment-success?itemType=${itemType}&itemId=${itemId}`;
+    
     const response = await axios.post(
       'https://api.paystack.co/transaction/initialize',
       {

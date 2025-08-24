@@ -30,7 +30,7 @@ const ProductCard = ({ product }) => {
 
   return (
     <div className="group relative bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300">
-      <Link to={`/product/${product._id}`} className="block">        <div className="relative aspect-square overflow-hidden rounded-t-xl">          <img
+      <Link to={`/product/${product.slug || product._id}`} className="block">        <div className="relative aspect-square overflow-hidden rounded-t-xl">          <img
             src={product.images && product.images.length > 0 ? product.images[0] : '/images/no-image-placeholder.png'}
             onError={(e) => {
               e.currentTarget.src = '/images/no-image-placeholder.png';
@@ -108,6 +108,7 @@ const ProductCard = ({ product }) => {
 ProductCard.propTypes = {
   product: PropTypes.shape({
     _id: PropTypes.string.isRequired,
+    slug: PropTypes.string,
     name: PropTypes.string.isRequired,
     price: PropTypes.number.isRequired,
     images: PropTypes.arrayOf(PropTypes.string).isRequired,

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaEye, FaEyeSlash, FaCheck, FaTimes } from 'react-icons/fa';
 import { validatePassword } from '../utils/validation';
+import { API_BASE_URL } from '../config/api.js';
 
 function ResetPasswordPage() {
   const [password, setPassword] = useState('');
@@ -40,7 +41,7 @@ function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/auth/reset-password/${token}`, {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password/${token}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),

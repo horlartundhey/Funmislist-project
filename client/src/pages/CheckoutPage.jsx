@@ -6,6 +6,7 @@ import { initiatePayment, resetPayment } from '../slices/paymentSlice';
 import { clearCart } from '../slices/cartSlice';
 import { toast } from 'react-toastify';
 import formatCurrency from '../utils/formatCurrency';
+import { API_BASE_URL } from '../config/api';
 
 
 function isValidPhoneNumber(phone) {
@@ -47,7 +48,7 @@ function CheckoutPage() {
     if (payment.success && payment.authorizationUrl) {
       // Decrement stock for each item
       cartItems.forEach(async (item) => {
-        await fetch(`https://funmislist-project.vercel.app/api/products/${item.id}/adjust-stock`, {
+        await fetch(`${API_BASE_URL}/products/${item.id}/adjust-stock`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

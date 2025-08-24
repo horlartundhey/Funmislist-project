@@ -2,11 +2,12 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import PropertyForm from '../components/PropertyForm';
 import { toast } from 'react-toastify';
-import { FaChartBar, FaBox, FaTags, FaListUl, FaPlus, FaTable, FaTachometerAlt, FaArrowLeft, FaArrowRight, FaUser, FaSignOutAlt } from 'react-icons/fa';        
+import { FaChartBar, FaBox, FaTags, FaListUl, FaPlus, FaTable, FaTachometerAlt, FaArrowLeft, FaArrowRight, FaUser, FaSignOutAlt, FaImage } from 'react-icons/fa';        
 import { Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { CategoryScale, LinearScale, PointElement, LineElement, Title } from 'chart.js';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api';
 
 // Register ChartJS components
 ChartJS.register(
@@ -73,6 +74,21 @@ function AdminDashboardPage() {
     availableTimeSlots: []
   });
   const [editingProperty, setEditingProperty] = useState(null);
+  
+  // Banner management states
+  const [banners, setBanners] = useState([]);
+  const [newBanner, setNewBanner] = useState({
+    title: '', subtitle: '', description: '', imageUrl: '',
+    linkUrl: '', linkText: 'Shop Now', backgroundColor: '#3B82F6',
+    textColor: '#FFFFFF', buttonColor: '#FFFFFF', position: 'shop',
+    active: true, order: 1, startDate: '', endDate: ''
+  });
+  const [editingBanner, setEditingBanner] = useState(null);
+  const [loadingBanners, setLoadingBanners] = useState(true);
+  const [loadingAddBanner, setLoadingAddBanner] = useState(false);
+  const [loadingEditBanner, setLoadingEditBanner] = useState(false);
+  const [loadingDeleteBanner, setLoadingDeleteBanner] = useState(null);
+  const [bannerSubSection, setBannerSubSection] = useState('view'); // 'view' or 'add'
   const [viewingProperty, setViewingProperty] = useState(null);
 
   const { token, userInfo } = useSelector((state) => state.user);
@@ -83,17 +99,25 @@ function AdminDashboardPage() {
     setLoadingProducts(true);
     setErrorProducts(null);
     try {
-      const response = await fetch('https://funmislist-project.vercel.app/api/products', {
+      console.log('Fetching products from:', `${API_BASE_URL}/products`);
+      const response = await fetch(`${API_BASE_URL}/products`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log('Products response status:', response.status);
       const data = await response.json();
+      console.log('Products data received:', data);
       if (!response.ok) {
         throw new Error(data.message || 'Failed to fetch products');
       }
-      setProducts(data);
+      // Extract products array from response object
+      const productsArray = data.products || data;
+      // Ensure data is an array
+      setProducts(Array.isArray(productsArray) ? productsArray : []);
+      console.log('Products set to state:', Array.isArray(productsArray) ? productsArray : []);
     } catch (error) {
       console.error('Error fetching products:', error);
       setErrorProducts('Failed to fetch products');
+      setProducts([]); // Set empty array on error
     } finally {
       setLoadingProducts(false);
     }
@@ -101,28 +125,34 @@ function AdminDashboardPage() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await fetch('https://funmislist-project.vercel.app/api/categories', {
+      const response = await fetch(`${API_BASE_URL}/categories`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      setCategories(data);
+      // Ensure data is an array
+      setCategories(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching categories:', error);
+      setCategories([]); // Set empty array on error
     }
   }, [token]);
   const fetchProperties = useCallback(async () => {
     try {
       console.log('Fetching properties with token:', token);
-      const res = await fetch('https://funmislist-project.vercel.app/api/properties', {
+      const res = await fetch(`${API_BASE_URL}/properties`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to fetch properties');
       console.log('Properties fetched:', data);
-      setProperties(data);
+      // Extract properties array from response object
+      const propertiesArray = data.properties || data;
+      // Ensure data is an array
+      setProperties(Array.isArray(propertiesArray) ? propertiesArray : []);
     } catch (err) {
       console.error('Error fetching properties:', err);
       toast.error('Error fetching properties');
+      setProperties([]); // Set empty array on error
     }
   }, [token]);
 
@@ -130,15 +160,17 @@ function AdminDashboardPage() {
     setLoadingTransactions(true);
     setErrorTransactions(null);
     try {
-      const res = await fetch('https://funmislist-project.vercel.app/api/payments/transactions', {
+      const res = await fetch(`${API_BASE_URL}/payments/transactions`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to load transactions');
-      setTransactions(data);
+      // Ensure data is an array
+      setTransactions(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error loading transactions:', err);
       setErrorTransactions(err.message);
+      setTransactions([]); // Set empty array on error
     } finally {
       setLoadingTransactions(false);
     }
@@ -148,15 +180,15 @@ function AdminDashboardPage() {
   const paginatedProducts = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return products.slice(startIndex, endIndex);
+    return Array.isArray(products) ? products.slice(startIndex, endIndex) : [];
   }, [currentPage, itemsPerPage, products]);
 
   // Calculate total pages
-  const pageCount = Math.ceil(products.length / itemsPerPage);
+  const pageCount = Math.ceil((Array.isArray(products) ? products.length : 0) / itemsPerPage);
 
   // Analytics computations
   const transactionAnalytics = useMemo(() => {
-    if (!transactions.length) return null;
+    if (!Array.isArray(transactions) || transactions.length === 0) return null;
 
     // Calculate total revenue from successful transactions
     const totalRevenue = transactions.reduce((sum, t) => 
@@ -169,19 +201,23 @@ function AdminDashboardPage() {
     }, {});
 
     // Get recent transactions sorted by date
-    const recentTransactions = [...transactions]
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 5);
+    const recentTransactions = Array.isArray(transactions) 
+      ? [...transactions]
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 5)
+      : [];
 
     // Calculate monthly revenue data for line chart
-    const monthlyRevenue = transactions
-      .filter(t => t.status === 'success')
-      .reduce((acc, t) => {
-        const date = new Date(t.createdAt);
-        const monthYear = date.toLocaleString('default', { month: 'short', year: 'numeric' });
-        acc[monthYear] = (acc[monthYear] || 0) + t.amount;
-        return acc;
-      }, {});
+    const monthlyRevenue = Array.isArray(transactions) 
+      ? transactions
+          .filter(t => t.status === 'success')
+          .reduce((acc, t) => {
+            const date = new Date(t.createdAt);
+            const monthYear = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+            acc[monthYear] = (acc[monthYear] || 0) + t.amount;
+            return acc;
+          }, {})
+      : {};
 
     // Prepare chart data
     const chartData = {
@@ -245,7 +281,7 @@ function AdminDashboardPage() {
     });
 
     try {
-      const response = await fetch('https://funmislist-project.vercel.app/api/products', {
+      const response = await fetch(`${API_BASE_URL}/products`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -304,7 +340,7 @@ function AdminDashboardPage() {
     }
 
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${editingProduct._id}`, {
+      const response = await fetch(`${API_BASE_URL}/products/${editingProduct._id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -329,7 +365,7 @@ function AdminDashboardPage() {
   const handleDeleteProduct = useCallback(async (id) => {
     setLoadingDeleteProduct(id);
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/products/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -366,7 +402,7 @@ function AdminDashboardPage() {
         formData.append('image', newCategoryImage);
       }
 
-      const response = await fetch('https://funmislist-project.vercel.app/api/categories', {
+      const response = await fetch(`${API_BASE_URL}/categories`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -402,7 +438,7 @@ function AdminDashboardPage() {
         formData.append('image', editingCategory.newImage);
       }
 
-      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${editingCategory._id}`, {
+      const response = await fetch(`${API_BASE_URL}/categories/${editingCategory._id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -428,7 +464,7 @@ function AdminDashboardPage() {
   const handleDeleteCategory = useCallback(async (id) => {
     setLoadingDeleteCategory(id);
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -452,7 +488,7 @@ function AdminDashboardPage() {
   const handleTogglePublish = useCallback(async (product) => {
     setLoadingPublishToggle(product._id);
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/products/${product._id}/publish`, {
+      const response = await fetch(`${API_BASE_URL}/products/${product._id}/publish`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -476,7 +512,7 @@ function AdminDashboardPage() {
   const handleTogglePropertyPublish = async (property) => {
     try {
       setLoadingPublishToggle(property._id);
-      const response = await fetch(`https://funmislist-project.vercel.app/api/properties/${property._id}/publish`, {
+      const response = await fetch(`${API_BASE_URL}/properties/${property._id}/publish`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       });
@@ -523,7 +559,7 @@ function AdminDashboardPage() {
           formData.append('images', image);
         });
       }
-      const response = await fetch('https://funmislist-project.vercel.app/api/properties', {
+      const response = await fetch('${API_BASE_URL}/properties', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -602,7 +638,7 @@ function AdminDashboardPage() {
         });
       }
 
-      const response = await fetch(`https://funmislist-project.vercel.app/api/properties/${editingProperty._id}`, {
+      const response = await fetch(`${API_BASE_URL}/properties/${editingProperty._id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -628,7 +664,7 @@ function AdminDashboardPage() {
   const handleDeleteProperty = useCallback(async (id) => {
     setLoadingDeleteProperty(id);
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/properties/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/properties/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -676,7 +712,7 @@ function AdminDashboardPage() {
   const handleAddSubcategory = useCallback(async (categoryId, name) => {
     if (!name) return;
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${categoryId}/subcategories`, {
+      const response = await fetch(`${API_BASE_URL}/categories/${categoryId}/subcategories`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -699,7 +735,7 @@ function AdminDashboardPage() {
   const handleEditSubcategory = useCallback(async (categoryId, subId, name) => {
     if (!name) return;
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${categoryId}/subcategories/${subId}`, {
+      const response = await fetch(`${API_BASE_URL}/categories/${categoryId}/subcategories/${subId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -721,7 +757,7 @@ function AdminDashboardPage() {
 
   const handleDeleteSubcategory = useCallback(async (categoryId, subId) => {
     try {
-      const response = await fetch(`https://funmislist-project.vercel.app/api/categories/${categoryId}/subcategories/${subId}`, {
+      const response = await fetch(`${API_BASE_URL}/categories/${categoryId}/subcategories/${subId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -737,6 +773,141 @@ function AdminDashboardPage() {
     }
   }, [token, fetchCategories]);
 
+  // Banner handlers
+  const fetchBanners = useCallback(async () => {
+    setLoadingBanners(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/banners`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Banners data received:', data);
+        // Extract banners array from response object
+        const bannersArray = data.banners || data;
+        // Ensure data is an array
+        setBanners(Array.isArray(bannersArray) ? bannersArray : []);
+      } else {
+        toast.error('Error fetching banners');
+        setBanners([]); // Set empty array on error
+      }
+    } catch (error) {
+      console.error('Error fetching banners:', error);
+      toast.error('Error fetching banners');
+      setBanners([]); // Set empty array on error
+    } finally {
+      setLoadingBanners(false);
+    }
+  }, [token]);
+
+  const handleAddBanner = useCallback(async (e) => {
+    e.preventDefault();
+    setLoadingAddBanner(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/banners`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(newBanner),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setBanners(prev => [...prev, data]);
+        setNewBanner({
+          title: '', subtitle: '', description: '', imageUrl: '',
+          linkUrl: '', linkText: 'Shop Now', backgroundColor: '#3B82F6',
+          textColor: '#FFFFFF', buttonColor: '#FFFFFF', position: 'shop',
+          active: true, order: 1, startDate: '', endDate: ''
+        });
+        setBannerSubSection('view');
+        toast.success('Banner added successfully');
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Error adding banner');
+      }
+    } catch (error) {
+      console.error('Error adding banner:', error);
+      toast.error('Error adding banner');
+    } finally {
+      setLoadingAddBanner(false);
+    }
+  }, [token, newBanner]);
+
+  const handleEditBannerClick = useCallback((banner) => {
+    setEditingBanner(banner);
+    setBannerSubSection('add'); // Switch to add/edit form
+  }, []);
+
+  const handleEditBanner = useCallback(async (e) => {
+    e.preventDefault();
+    if (!editingBanner?._id) return;
+    
+    setLoadingEditBanner(editingBanner._id);
+    try {
+      const response = await fetch(`${API_BASE_URL}/banners/${editingBanner._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(editingBanner),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setBanners(prev => prev.map(banner => 
+          banner._id === editingBanner._id ? data : banner
+        ));
+        setEditingBanner(null);
+        setBannerSubSection('view');
+        setNewBanner({
+          title: '', subtitle: '', description: '', imageUrl: '',
+          linkUrl: '', linkText: 'Shop Now', backgroundColor: '#3B82F6',
+          textColor: '#FFFFFF', buttonColor: '#FFFFFF', position: 'shop',
+          active: true, order: 1, startDate: '', endDate: ''
+        });
+        toast.success('Banner updated successfully');
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Error updating banner');
+      }
+    } catch (error) {
+      console.error('Error updating banner:', error);
+      toast.error('Error updating banner');
+    } finally {
+      setLoadingEditBanner(null);
+    }
+  }, [token, editingBanner]);
+
+  const handleDeleteBanner = useCallback(async (id) => {
+    setLoadingDeleteBanner(id);
+    try {
+      const response = await fetch(`${API_BASE_URL}/banners/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setBanners(prev => prev.filter(banner => banner._id !== id));
+        toast.success('Banner deleted successfully');
+      } else {
+        toast.error('Error deleting banner');
+      }
+    } catch (error) {
+      console.error('Error deleting banner:', error);
+      toast.error('Error deleting banner');
+    } finally {
+      setLoadingDeleteBanner(null);
+    }
+  }, [token]);
+
   // Initialize data and setup section-specific data fetching
   useEffect(() => {
     // Initial data fetch
@@ -748,8 +919,10 @@ function AdminDashboardPage() {
     } else if (activeSection === 'analytics') {
       fetchTransactions();
       fetchProducts();
+    } else if (activeSection === 'banners') {
+      fetchBanners();
     }
-  }, [activeSection, fetchProducts, fetchCategories, fetchProperties, fetchTransactions]);
+  }, [activeSection, fetchProducts, fetchCategories, fetchProperties, fetchTransactions, fetchBanners]);
 
   const handleLogout = () => {
     dispatch({ type: 'user/logout' });
@@ -854,6 +1027,17 @@ function AdminDashboardPage() {
                 {sidebarExpanded && <span>Properties</span>}
               </button>
             </li>
+            
+            <li>
+              <button
+                onClick={() => setActiveSection('banners')}
+                className={`flex items-center w-full p-3 ${sidebarExpanded ? 'justify-start' : 'justify-center'} 
+                ${activeSection === 'banners' ? 'bg-blue-700 border-l-4 border-white' : 'hover:bg-blue-700'} transition-all duration-200`}
+              >
+                <FaImage className={`${sidebarExpanded ? 'mr-3' : 'mx-auto'} text-xl`} />
+                {sidebarExpanded && <span>Banners</span>}
+              </button>
+            </li>
           </ul>
         </nav>
       </div>      {/* Main Content */}
@@ -864,10 +1048,12 @@ function AdminDashboardPage() {
             {activeSection === 'products' && (productSubSection === 'view' ? <FaTable className="mr-3 text-blue-600" /> : <FaPlus className="mr-3 text-blue-600" />)}
             {activeSection === 'categories' && <FaTags className="mr-3 text-blue-600" />}
             {activeSection === 'properties' && <FaListUl className="mr-3 text-blue-600" />}
+            {activeSection === 'banners' && <FaImage className="mr-3 text-blue-600" />}
             {activeSection === 'analytics' && 'Dashboard Analytics'}
             {activeSection === 'products' && (productSubSection === 'view' ? 'View Products' : 'Add New Product')}
             {activeSection === 'categories' && 'Manage Categories'}
             {activeSection === 'properties' && 'Manage Properties'}
+            {activeSection === 'banners' && 'Manage Banners'}
           </h1>
 
           {/* Analytics Section */}
@@ -877,16 +1063,16 @@ function AdminDashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                   <h3 className="text-gray-500 text-sm font-medium">Products Overview</h3>
-                  <p className="text-3xl font-bold text-gray-800">{products.length}</p>
+                  <p className="text-3xl font-bold text-gray-800">{Array.isArray(products) ? products.length : 0}</p>
                   <div className="mt-2 text-xs text-blue-600">
-                    {products.filter(p => p.published).length} Published Products
+                    {Array.isArray(products) ? products.filter(p => p.published).length : 0} Published Products
                   </div>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                   <h3 className="text-gray-500 text-sm font-medium">Properties Listed</h3>
-                  <p className="text-3xl font-bold text-gray-800">{properties.length}</p>
+                  <p className="text-3xl font-bold text-gray-800">{Array.isArray(properties) ? properties.length : 0}</p>
                   <div className="mt-2 text-xs text-blue-600">
-                    {categories.length} Active Categories
+                    {Array.isArray(categories) ? categories.length : 0} Active Categories
                   </div>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
@@ -895,7 +1081,7 @@ function AdminDashboardPage() {
                     {formatCurrency(transactionAnalytics?.totalRevenue || 0)}
                   </p>
                   <div className="mt-2 text-xs text-blue-600">
-                    {transactions.length} Total Transactions
+                    {Array.isArray(transactions) ? transactions.length : 0} Total Transactions
                   </div>
                 </div>
               </div>
@@ -906,7 +1092,7 @@ function AdminDashboardPage() {
                   <h3 className="text-gray-500 text-sm font-medium">Completed Payments</h3>
                   <p className="text-3xl font-bold text-green-600">{transactionAnalytics?.statusBreakdown?.success || 0}</p>
                   <div className="mt-2 text-xs text-green-600">
-                    {transactions.length > 0 ? 
+                    {Array.isArray(transactions) && transactions.length > 0 ? 
                       `${((transactionAnalytics?.statusBreakdown?.success || 0) / transactions.length * 100).toFixed(1)}% Success Rate` 
                       : 'No transactions yet'}
                   </div>
@@ -977,14 +1163,14 @@ function AdminDashboardPage() {
                     </div>
                   ) : errorTransactions ? (
                     <div className="p-4 text-red-500">{errorTransactions}</div>
-                  ) : transactions.length === 0 ? (
+                  ) : Array.isArray(transactions) && transactions.length === 0 ? (
                     <p className="text-center text-gray-500 p-4">No transactions found</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-left">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-4 py-3 border-b">Reference</th>
+                            <th className="px-4 py-3 border-b">Order Number</th>
                             <th className="px-4 py-3 border-b">User</th>
                             <th className="px-4 py-3 border-b">Property</th>
                             <th className="px-4 py-3 border-b">Amount</th>
@@ -995,7 +1181,11 @@ function AdminDashboardPage() {
                         <tbody>
                           {transactionAnalytics?.recentTransactions.map(tx => (
                             <tr key={tx.reference} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 border-b">{tx.reference}</td>
+                              <td className="px-4 py-3 border-b">
+                                <span className="font-mono font-semibold text-blue-600">
+                                  {tx.orderNumber || tx.reference}
+                                </span>
+                              </td>
                               <td className="px-4 py-3 border-b">{tx.user?.email || tx.user?.name || 'Unknown'}</td>
                               <td className="px-4 py-3 border-b">{tx.property?.title || 'Unknown'}</td>
                               <td className="px-4 py-3 border-b">{formatCurrency(tx.amount)}</td>
@@ -1072,7 +1262,7 @@ function AdminDashboardPage() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold mb-4">Categories</h3>
                   <div className="grid gap-4">
-                    {categories.map((category) => (
+                    {Array.isArray(categories) && categories.map((category) => (
                       <div key={category._id} className="border rounded-lg p-4 flex justify-between items-start">
                         <div>
                           <div className="flex items-center">
@@ -1327,9 +1517,9 @@ function AdminDashboardPage() {
 
                         {/* Pagination */}                        <div className="flex items-center justify-between p-4 border-t">
                           <div className="text-sm text-gray-700">
-                            Showing <span className="font-medium">{Math.min((currentPage - 1) * itemsPerPage + 1, products.length)}</span> to{' '}
-                            <span className="font-medium">{Math.min(currentPage * itemsPerPage, products.length)}</span> of{' '}
-                            <span className="font-medium">{products.length}</span> products
+                            Showing <span className="font-medium">{Math.min((currentPage - 1) * itemsPerPage + 1, Array.isArray(products) ? products.length : 0)}</span> to{' '}
+                            <span className="font-medium">{Math.min(currentPage * itemsPerPage, Array.isArray(products) ? products.length : 0)}</span> of{' '}
+                            <span className="font-medium">{Array.isArray(products) ? products.length : 0}</span> products
                           </div>
                           <div className="flex items-center space-x-2">
                             <button
@@ -1407,7 +1597,7 @@ function AdminDashboardPage() {
                             required
                           >
                             <option value="">Select Category</option>
-                            {categories.map(cat => (
+                            {Array.isArray(categories) && categories.map(cat => (
                               <option key={cat._id} value={cat._id}>{cat.name}</option>
                             ))}
                           </select>
@@ -1604,7 +1794,7 @@ function AdminDashboardPage() {
                     </button>
                   </div>
 
-                  {properties.length === 0 ? (
+                  {Array.isArray(properties) && properties.length === 0 ? (
                     <div className="text-center py-10">
                       <p className="text-gray-500">No properties found</p>
                     </div>
@@ -1621,7 +1811,7 @@ function AdminDashboardPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {properties.map((property) => (
+                          {Array.isArray(properties) && properties.map((property) => (
                             <tr key={property._id} className="hover:bg-gray-50">
                               <td className="px-4 py-3 border-b">
                                 <div className="flex items-center">
@@ -1884,6 +2074,468 @@ function AdminDashboardPage() {
                 </div>
               </div>
             </div>
+          )}
+          
+          {/* Banner Management Section */}
+          {activeSection === 'banners' && (
+            <section className="space-y-6">
+              {/* Banner Management Tabs */}
+              <div className="flex space-x-4 border-b">
+                <button
+                  onClick={() => setBannerSubSection('view')}
+                  className={`px-4 py-2 font-medium ${
+                    bannerSubSection === 'view'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  View Banners
+                </button>
+                <button
+                  onClick={() => setBannerSubSection('add')}
+                  className={`px-4 py-2 font-medium ${
+                    bannerSubSection === 'add'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Add Banner
+                </button>
+              </div>
+
+              {/* View Banners */}
+              {bannerSubSection === 'view' && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div className="p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">All Banners</h3>
+                      <button
+                        onClick={() => setBannerSubSection('add')}
+                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center"
+                      >
+                        <FaPlus className="mr-2" />
+                        Add New Banner
+                      </button>
+                    </div>
+
+                    {loadingBanners ? (
+                      <div className="text-center py-4">Loading banners...</div>
+                    ) : banners.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <FaImage className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                        <p>No banners found. Create your first banner!</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Preview
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Title
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Position
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {Array.isArray(banners) && banners.map((banner) => (
+                              <tr key={banner._id}>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center">
+                                    {banner.imageUrl ? (
+                                      <img
+                                        src={banner.imageUrl}
+                                        alt={banner.title}
+                                        className="h-12 w-20 object-cover rounded"
+                                      />
+                                    ) : (
+                                      <div 
+                                        className="h-12 w-20 rounded flex items-center justify-center text-white text-xs"
+                                        style={{ backgroundColor: banner.backgroundColor }}
+                                      >
+                                        {banner.title.substring(0, 3)}
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-sm font-medium text-gray-900">{banner.title}</div>
+                                  <div className="text-sm text-gray-500">{banner.subtitle}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    {banner.position}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                    banner.active 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {banner.active ? 'Active' : 'Inactive'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                  <button
+                                    onClick={() => handleEditBannerClick(banner)}
+                                    className="text-blue-600 hover:text-blue-900 mr-4"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteBanner(banner._id)}
+                                    className="text-red-600 hover:text-red-900"
+                                    disabled={loadingDeleteBanner === banner._id}
+                                  >
+                                    {loadingDeleteBanner === banner._id ? 'Deleting...' : 'Delete'}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Add/Edit Banner Form */}
+              {bannerSubSection === 'add' && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">
+                      {editingBanner ? 'Edit Banner' : 'Add New Banner'}
+                    </h3>
+                    
+                    <form onSubmit={editingBanner ? handleEditBanner : handleAddBanner} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Title */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Title *
+                          </label>
+                          <input
+                            type="text"
+                            value={editingBanner ? editingBanner.title : newBanner.title}
+                            onChange={(e) => {
+                              if (editingBanner) {
+                                setEditingBanner({ ...editingBanner, title: e.target.value });
+                              } else {
+                                setNewBanner({ ...newBanner, title: e.target.value });
+                              }
+                            }}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter banner title"
+                            required
+                          />
+                        </div>
+
+                        {/* Subtitle */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Subtitle
+                          </label>
+                          <input
+                            type="text"
+                            value={editingBanner ? editingBanner.subtitle : newBanner.subtitle}
+                            onChange={(e) => {
+                              if (editingBanner) {
+                                setEditingBanner({ ...editingBanner, subtitle: e.target.value });
+                              } else {
+                                setNewBanner({ ...newBanner, subtitle: e.target.value });
+                              }
+                            }}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter banner subtitle"
+                          />
+                        </div>
+
+                        {/* Position */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Position *
+                          </label>
+                          <select
+                            value={editingBanner ? editingBanner.position : newBanner.position}
+                            onChange={(e) => {
+                              if (editingBanner) {
+                                setEditingBanner({ ...editingBanner, position: e.target.value });
+                              } else {
+                                setNewBanner({ ...newBanner, position: e.target.value });
+                              }
+                            }}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                          >
+                            <option value="hero">Hero Section</option>
+                            <option value="shop">Shop Page</option>
+                            <option value="category">Category Page</option>
+                            <option value="footer">Footer</option>
+                          </select>
+                        </div>
+
+                        {/* Link URL */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Link URL
+                          </label>
+                          <input
+                            type="url"
+                            value={editingBanner ? editingBanner.linkUrl : newBanner.linkUrl}
+                            onChange={(e) => {
+                              if (editingBanner) {
+                                setEditingBanner({ ...editingBanner, linkUrl: e.target.value });
+                              } else {
+                                setNewBanner({ ...newBanner, linkUrl: e.target.value });
+                              }
+                            }}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="https://example.com"
+                          />
+                        </div>
+
+                        {/* Link Text */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Button Text
+                          </label>
+                          <input
+                            type="text"
+                            value={editingBanner ? editingBanner.linkText : newBanner.linkText}
+                            onChange={(e) => {
+                              if (editingBanner) {
+                                setEditingBanner({ ...editingBanner, linkText: e.target.value });
+                              } else {
+                                setNewBanner({ ...newBanner, linkText: e.target.value });
+                              }
+                            }}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Shop Now"
+                          />
+                        </div>
+
+                        {/* Background Color */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Background Color
+                          </label>
+                          <input
+                            type="color"
+                            value={editingBanner ? editingBanner.backgroundColor : newBanner.backgroundColor}
+                            onChange={(e) => {
+                              if (editingBanner) {
+                                setEditingBanner({ ...editingBanner, backgroundColor: e.target.value });
+                              } else {
+                                setNewBanner({ ...newBanner, backgroundColor: e.target.value });
+                              }
+                            }}
+                            className="w-full h-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+
+                        {/* Text Color */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Text Color
+                          </label>
+                          <input
+                            type="color"
+                            value={editingBanner ? editingBanner.textColor : newBanner.textColor}
+                            onChange={(e) => {
+                              if (editingBanner) {
+                                setEditingBanner({ ...editingBanner, textColor: e.target.value });
+                              } else {
+                                setNewBanner({ ...newBanner, textColor: e.target.value });
+                              }
+                            }}
+                            className="w-full h-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+
+                        {/* Button Color */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Button Color
+                          </label>
+                          <input
+                            type="color"
+                            value={editingBanner ? editingBanner.buttonColor : newBanner.buttonColor}
+                            onChange={(e) => {
+                              if (editingBanner) {
+                                setEditingBanner({ ...editingBanner, buttonColor: e.target.value });
+                              } else {
+                                setNewBanner({ ...newBanner, buttonColor: e.target.value });
+                              }
+                            }}
+                            className="w-full h-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+
+                        {/* Order */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Display Order
+                          </label>
+                          <input
+                            type="number"
+                            value={editingBanner ? editingBanner.order : newBanner.order}
+                            onChange={(e) => {
+                              if (editingBanner) {
+                                setEditingBanner({ ...editingBanner, order: parseInt(e.target.value) });
+                              } else {
+                                setNewBanner({ ...newBanner, order: parseInt(e.target.value) });
+                              }
+                            }}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            min="1"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          value={editingBanner ? editingBanner.description : newBanner.description}
+                          onChange={(e) => {
+                            if (editingBanner) {
+                              setEditingBanner({ ...editingBanner, description: e.target.value });
+                            } else {
+                              setNewBanner({ ...newBanner, description: e.target.value });
+                            }
+                          }}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          rows="3"
+                          placeholder="Enter banner description"
+                        />
+                      </div>
+
+                      {/* Image URL */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Image URL
+                        </label>
+                        <input
+                          type="url"
+                          value={editingBanner ? editingBanner.imageUrl : newBanner.imageUrl}
+                          onChange={(e) => {
+                            if (editingBanner) {
+                              setEditingBanner({ ...editingBanner, imageUrl: e.target.value });
+                            } else {
+                              setNewBanner({ ...newBanner, imageUrl: e.target.value });
+                            }
+                          }}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="https://example.com/image.jpg"
+                        />
+                      </div>
+
+                      {/* Active Status */}
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={editingBanner ? editingBanner.active : newBanner.active}
+                          onChange={(e) => {
+                            if (editingBanner) {
+                              setEditingBanner({ ...editingBanner, active: e.target.checked });
+                            } else {
+                              setNewBanner({ ...newBanner, active: e.target.checked });
+                            }
+                          }}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label className="ml-2 block text-sm text-gray-900">
+                          Banner is active
+                        </label>
+                      </div>
+
+                      {/* Preview */}
+                      {((editingBanner || newBanner).title || (editingBanner || newBanner).imageUrl) && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Preview
+                          </label>
+                          <div 
+                            className="p-4 rounded-lg min-h-32 flex items-center justify-center"
+                            style={{ 
+                              backgroundColor: (editingBanner || newBanner).backgroundColor,
+                              color: (editingBanner || newBanner).textColor,
+                              backgroundImage: (editingBanner || newBanner).imageUrl ? `url(${(editingBanner || newBanner).imageUrl})` : 'none',
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center'
+                            }}
+                          >
+                            <div className="text-center">
+                              {(editingBanner || newBanner).title && (
+                                <h3 className="text-2xl font-bold mb-2">{(editingBanner || newBanner).title}</h3>
+                              )}
+                              {(editingBanner || newBanner).subtitle && (
+                                <p className="text-lg mb-4">{(editingBanner || newBanner).subtitle}</p>
+                              )}
+                              {(editingBanner || newBanner).linkText && (
+                                <button 
+                                  className="px-6 py-2 rounded font-medium"
+                                  style={{ 
+                                    backgroundColor: (editingBanner || newBanner).buttonColor,
+                                    color: (editingBanner || newBanner).textColor === '#FFFFFF' ? '#000000' : '#FFFFFF'
+                                  }}
+                                >
+                                  {(editingBanner || newBanner).linkText}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Form Actions */}
+                      <div className="flex justify-end space-x-4 pt-4 border-t">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBannerSubSection('view');
+                            setEditingBanner(null);
+                            setNewBanner({
+                              title: '', subtitle: '', description: '', imageUrl: '',
+                              linkUrl: '', linkText: 'Shop Now', backgroundColor: '#3B82F6',
+                              textColor: '#FFFFFF', buttonColor: '#FFFFFF', position: 'shop',
+                              active: true, order: 1, startDate: '', endDate: ''
+                            });
+                          }}
+                          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={loadingAddBanner || loadingEditBanner}
+                          className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                        >
+                          {(loadingAddBanner || loadingEditBanner) 
+                            ? (editingBanner ? 'Updating...' : 'Creating...') 
+                            : (editingBanner ? 'Update Banner' : 'Create Banner')
+                          }
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </section>
           )}
 
           {/* Property Add/Edit Form */}
