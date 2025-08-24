@@ -115,6 +115,17 @@ app.get('/api/test-cors', (req, res) => {
   });
 });
 
+// Environment check endpoint
+app.get('/api/env-check', (req, res) => {
+  res.json({
+    message: 'Environment check',
+    hasMongoUri: !!process.env.MONGO_URI,
+    isVercel: !!process.env.VERCEL,
+    nodeEnv: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Debug route to check environment variables
 app.get('/debug/env', (req, res) => {
   console.log('=== ENVIRONMENT DEBUG ACCESS ===');
