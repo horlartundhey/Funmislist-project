@@ -8,18 +8,40 @@ const mongoose = require('mongoose');
 // Load environment variables FIRST
 dotenv.config();
 
+console.log('=== SERVER STARTUP ===');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('VERCEL:', !!process.env.VERCEL);
+console.log('MONGO_URI available:', !!process.env.MONGO_URI);
+console.log('======================');
+
 // Then require modules that use environment variables
-const connectDB = require('./config/db');
-const testRoutes = require('./routes/testRoutes');
-const authRoutes = require('./routes/authRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const productRoutes = require('./routes/productRoutes');
-const categoryRoutes = require('./routes/categoryRoutes');
-const propertyRoutes = require('./routes/propertyRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
-const userRoutes = require('./routes/userRoutes');
-const bannerRoutes = require('./routes/bannerRoutes');
-const debugRoutes = require('./routes/debugRoutes');
+let connectDB, testRoutes, authRoutes, adminRoutes, productRoutes;
+let categoryRoutes, propertyRoutes, paymentRoutes, userRoutes;
+let bannerRoutes, debugRoutes;
+
+try {
+  connectDB = require('./config/db');
+  testRoutes = require('./routes/testRoutes');
+  authRoutes = require('./routes/authRoutes');
+  adminRoutes = require('./routes/adminRoutes');
+  productRoutes = require('./routes/productRoutes');
+  categoryRoutes = require('./routes/categoryRoutes');
+  propertyRoutes = require('./routes/propertyRoutes');
+  paymentRoutes = require('./routes/paymentRoutes');
+  userRoutes = require('./routes/userRoutes');
+  bannerRoutes = require('./routes/bannerRoutes');
+  debugRoutes = require('./routes/debugRoutes');
+
+  console.log('All modules loaded successfully');
+} catch (error) {
+  console.error('Error loading modules:', error.message);
+  // In Vercel, still try to continue with a basic server
+  if (process.env.VERCEL) {
+    console.log('Continuing with basic server for Vercel...');
+  } else {
+    process.exit(1);
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,6 +52,9 @@ let dbConnected = false;
 // Function to ensure database connection
 const ensureDBConnection = async () => {
   try {
+    if (!connectDB) {
+      throw new Error('Database module not loaded');
+    }
     if (mongoose.connection.readyState !== 1) {
       console.log('Connecting to database...');
       await connectDB();
@@ -46,7 +71,8 @@ const ensureDBConnection = async () => {
 // In serverless environments, establish connection on first request
 if (process.env.VERCEL) {
   console.log('Serverless environment detected - will connect to DB on first request');
-} else {
+  // Skip initial DB connection in Vercel to prevent function startup failures
+} else if (connectDB) {
   // In traditional server environments, connect immediately
   connectDB().then(() => {
     dbConnected = true;
@@ -60,6 +86,15 @@ if (process.env.VERCEL) {
 const dbMiddleware = (req, res, next) => {
   // For serverless, try to connect if not connected
   if (process.env.VERCEL && mongoose.connection.readyState !== 1) {
+    // Check if MONGO_URI is available
+    if (!process.env.MONGO_URI) {
+      console.error('MONGO_URI environment variable not set');
+      return res.status(503).json({ 
+        message: 'Database configuration error. Please contact support.',
+        error: 'DB_CONFIG_ERROR'
+      });
+    }
+
     ensureDBConnection()
       .then(() => next())
       .catch(error => {
@@ -143,18 +178,22 @@ app.get('/debug/env', (req, res) => {
   });
 });
 
-// Use routes
-console.log('Registering test routes at /api/test');
-app.use('/api/test', testRoutes);
-app.use('/api/auth', dbMiddleware, authRoutes);
-app.use('/api/admin', dbMiddleware, adminRoutes);
-app.use('/api/products', dbMiddleware, productRoutes);
-app.use('/api/categories', dbMiddleware, categoryRoutes);
-app.use('/api/properties', dbMiddleware, propertyRoutes);
-app.use('/api/payments', dbMiddleware, paymentRoutes);
-app.use('/api/users', dbMiddleware, userRoutes);
-app.use('/api/banners', dbMiddleware, bannerRoutes);
-app.use('/debug', debugRoutes);
+// Use routes (with safety checks)
+console.log('Registering routes...');
+if (testRoutes) {
+  console.log('Registering test routes at /api/test');
+  app.use('/api/test', testRoutes);
+}
+if (authRoutes) app.use('/api/auth', dbMiddleware, authRoutes);
+if (adminRoutes) app.use('/api/admin', dbMiddleware, adminRoutes);
+if (productRoutes) app.use('/api/products', dbMiddleware, productRoutes);
+if (categoryRoutes) app.use('/api/categories', dbMiddleware, categoryRoutes);
+if (propertyRoutes) app.use('/api/properties', dbMiddleware, propertyRoutes);
+if (paymentRoutes) app.use('/api/payments', dbMiddleware, paymentRoutes);
+if (userRoutes) app.use('/api/users', dbMiddleware, userRoutes);
+if (bannerRoutes) app.use('/api/banners', dbMiddleware, bannerRoutes);
+if (debugRoutes) app.use('/debug', debugRoutes);
+console.log('Routes registered successfully');
 
 // Global error handling middleware
 app.use((error, req, res, next) => {
