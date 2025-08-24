@@ -29,16 +29,18 @@ let dbConnected = false;
 
 // Function to ensure database connection
 const ensureDBConnection = async () => {
-  if (!dbConnected && mongoose.connection.readyState !== 1) {
-    try {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      console.log('Connecting to database...');
       await connectDB();
       dbConnected = true;
-    } catch (error) {
-      console.error('Database connection failed:', error.message);
-      throw error;
+      console.log('Database connected successfully');
     }
+    return true;
+  } catch (error) {
+    console.error('Database connection failed:', error.message);
+    throw error;
   }
-  return true;
 };
 
 // In serverless environments, establish connection on first request
@@ -48,29 +50,29 @@ if (process.env.VERCEL) {
   // In traditional server environments, connect immediately
   connectDB().then(() => {
     dbConnected = true;
+    console.log('Initial database connection established');
   }).catch(err => {
     console.error('Initial database connection failed:', err.message);
   });
 }
 
-// Middleware to ensure DB connection
-app.use(async (req, res, next) => {
-  // Skip DB connection for static routes
-  if (!req.path.startsWith('/api')) {
-    return next();
-  }
-
-  try {
-    await ensureDBConnection();
+// Middleware to ensure DB connection (only for DB-dependent routes)
+const dbMiddleware = (req, res, next) => {
+  // For serverless, try to connect if not connected
+  if (process.env.VERCEL && mongoose.connection.readyState !== 1) {
+    ensureDBConnection()
+      .then(() => next())
+      .catch(error => {
+        console.error('Database connection middleware error:', error.message);
+        return res.status(503).json({ 
+          message: 'Database connection unavailable. Please try again later.',
+          error: 'SERVICE_UNAVAILABLE'
+        });
+      });
+  } else {
     next();
-  } catch (error) {
-    console.error('Database connection middleware error:', error.message);
-    return res.status(503).json({ 
-      message: 'Database connection unavailable. Please try again later.',
-      error: 'SERVICE_UNAVAILABLE'
-    });
   }
-});
+};
 
 // Middleware
 app.use(cors({
@@ -84,7 +86,16 @@ app.use(cors({
   ].filter(Boolean),
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  optionsSuccessStatus: 200
 }));
+
+// Add logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Origin: ${req.headers.origin}`);
+  next();
+});
+
 app.use(express.json());
 // Serve uploaded files when using local storage
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -92,6 +103,16 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Test route
 app.get('/', (req, res) => {
   res.send('API is running...');
+});
+
+// Simple test route without DB dependency
+app.get('/api/test-cors', (req, res) => {
+  res.json({
+    message: 'CORS test successful',
+    origin: req.headers.origin,
+    timestamp: new Date().toISOString(),
+    headers: req.headers
+  });
 });
 
 // Debug route to check environment variables
@@ -114,14 +135,14 @@ app.get('/debug/env', (req, res) => {
 // Use routes
 console.log('Registering test routes at /api/test');
 app.use('/api/test', testRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/properties', propertyRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/banners', bannerRoutes);
+app.use('/api/auth', dbMiddleware, authRoutes);
+app.use('/api/admin', dbMiddleware, adminRoutes);
+app.use('/api/products', dbMiddleware, productRoutes);
+app.use('/api/categories', dbMiddleware, categoryRoutes);
+app.use('/api/properties', dbMiddleware, propertyRoutes);
+app.use('/api/payments', dbMiddleware, paymentRoutes);
+app.use('/api/users', dbMiddleware, userRoutes);
+app.use('/api/banners', dbMiddleware, bannerRoutes);
 app.use('/debug', debugRoutes);
 
 // Global error handling middleware
