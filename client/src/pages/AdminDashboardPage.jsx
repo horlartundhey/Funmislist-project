@@ -559,7 +559,7 @@ function AdminDashboardPage() {
           formData.append('images', image);
         });
       }
-      const response = await fetch('${API_BASE_URL}/properties', {
+      const response = await fetch(`${API_BASE_URL}/properties`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

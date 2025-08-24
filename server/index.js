@@ -26,28 +26,62 @@ const PORT = process.env.PORT || 5000;
 
 // Connect to database - with connection status tracking
 let dbConnected = false;
-connectDB().then(() => {
-  dbConnected = true;
-}).catch(err => {
-  console.error('Initial database connection failed:', err.message);
-});
 
-// Middleware to check DB connection status
-app.use((req, res, next) => {
-  if (!dbConnected && !mongoose.connection.readyState) {
-    if (req.path.startsWith('/api')) {
-      return res.status(503).json({ 
-        message: 'Database connection unavailable. Please try again later.',
-        error: 'SERVICE_UNAVAILABLE'
-      });
+// Function to ensure database connection
+const ensureDBConnection = async () => {
+  if (!dbConnected && mongoose.connection.readyState !== 1) {
+    try {
+      await connectDB();
+      dbConnected = true;
+    } catch (error) {
+      console.error('Database connection failed:', error.message);
+      throw error;
     }
   }
-  next();
+  return true;
+};
+
+// In serverless environments, establish connection on first request
+if (process.env.VERCEL) {
+  console.log('Serverless environment detected - will connect to DB on first request');
+} else {
+  // In traditional server environments, connect immediately
+  connectDB().then(() => {
+    dbConnected = true;
+  }).catch(err => {
+    console.error('Initial database connection failed:', err.message);
+  });
+}
+
+// Middleware to ensure DB connection
+app.use(async (req, res, next) => {
+  // Skip DB connection for static routes
+  if (!req.path.startsWith('/api')) {
+    return next();
+  }
+
+  try {
+    await ensureDBConnection();
+    next();
+  } catch (error) {
+    console.error('Database connection middleware error:', error.message);
+    return res.status(503).json({ 
+      message: 'Database connection unavailable. Please try again later.',
+      error: 'SERVICE_UNAVAILABLE'
+    });
+  }
 });
 
 // Middleware
 app.use(cors({
-  origin: true,
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://funmislist-project.vercel.app',
+    'https://funmislist-project-sgb3.vercel.app',
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -90,7 +124,50 @@ app.use('/api/users', userRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/debug', debugRoutes);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Global error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Global error handler:', error);
+  
+  // Handle specific error types
+  if (error.name === 'ValidationError') {
+    return res.status(400).json({
+      message: 'Validation Error',
+      errors: Object.values(error.errors).map(err => err.message)
+    });
+  }
+  
+  if (error.name === 'CastError') {
+    return res.status(400).json({
+      message: 'Invalid ID format'
+    });
+  }
+  
+  if (error.code === 11000) {
+    return res.status(400).json({
+      message: 'Duplicate field value'
+    });
+  }
+  
+  // Default error response
+  res.status(500).json({
+    message: 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+  });
 });
+
+// 404 handler for unmatched routes
+app.use('*', (req, res) => {
+  res.status(404).json({
+    message: `Route ${req.originalUrl} not found`
+  });
+});
+
+// Start server (only in non-serverless environments)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+// Export for Vercel serverless functions
+module.exports = app;
