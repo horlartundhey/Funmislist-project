@@ -22,8 +22,13 @@ function UserDashboardPage() {
   }, [dispatch, userInfo]);
 
   useEffect(() => {
-  console.log('Transactions Data:', transactions);
-}, [transactions]);
+    console.log('Transactions Data:', transactions);
+    console.log('Transactions type:', typeof transactions);
+    console.log('Is array:', Array.isArray(transactions));
+    if (transactions && transactions.length > 0) {
+      console.log('First transaction:', transactions[0]);
+    }
+  }, [transactions]);
 
   // Handle copying order number to clipboard
   const handleCopyOrderNumber = async (orderNumber) => {
@@ -112,8 +117,10 @@ function UserDashboardPage() {
         {loading ? (
           <p>Loading...</p>
         ) : error ? (
-          <p className="text-red-500">{error}</p>
-        ) : transactions.length > 0 ? (
+          <div className="p-4 border border-red-300 rounded bg-red-50">
+            <p className="text-red-500">Error loading transactions: {error}</p>
+          </div>
+        ) : transactions && Array.isArray(transactions) && transactions.length > 0 ? (
           <table className="w-full border-collapse border border-gray-300">
             <thead>
               <tr>
@@ -126,7 +133,7 @@ function UserDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((tx) => (
+              {transactions.filter(tx => tx && tx._id).map((tx) => (
                 <tr key={tx._id}>
                   <td className="border border-gray-300 p-2 text-center">
                     <div className="flex items-center justify-center space-x-2">
@@ -147,22 +154,24 @@ function UserDashboardPage() {
                     </div>
                   </td>
                   <td className="border border-gray-300 p-2 text-center">
-                    {tx.product?._id || tx.property?._id || '-'}
+                    {(tx.product && tx.product._id) || (tx.property && tx.property._id) || 'N/A'}
                   </td>
                   <td className="border border-gray-300 p-2 text-center">
-                    {tx.product?.name || tx.property?.name || '-'}
+                    {(tx.product && tx.product.name) || (tx.property && tx.property.title) || 'N/A'}
                   </td>
-                  <td className="border border-gray-300 p-2 text-center">${tx.amount}</td>
+                  <td className="border border-gray-300 p-2 text-center">${tx.amount || 0}</td>
                   <td className="border border-gray-300 p-2 text-center">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       tx.status === 'success' ? 'bg-green-100 text-green-800' :
                       tx.status === 'failed' ? 'bg-red-100 text-red-800' :
                       'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {tx.status}
+                      {tx.status || 'Unknown'}
                     </span>
                   </td>
-                  <td className="border border-gray-300 p-2 text-center">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                  <td className="border border-gray-300 p-2 text-center">
+                    {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : 'N/A'}
+                  </td>
                 </tr>
               ))}
             </tbody>
