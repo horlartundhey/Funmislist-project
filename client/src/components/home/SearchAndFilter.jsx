@@ -1,74 +1,69 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { FaSearch, FaSlidersH } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
-import { API_BASE_URL } from '../../config/api';
 
-const SearchAndFilter = ({ onSearch }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedSubcategory, setSelectedSubcategory] = useState('');
-  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
-  const [locationTerm, setLocationTerm] = useState('');
-  const [selectedCondition, setSelectedCondition] = useState('');
+const SearchAndFilter = ({ onSearch, initialFilters = {} }) => {
+  const [searchTerm, setSearchTerm] = useState(initialFilters.query || '');
+  const [selectedCategory, setSelectedCategory] = useState(initialFilters.category || '');
+  const [selectedSubcategory, setSelectedSubcategory] = useState(initialFilters.subcategory || '');
+  const [priceRange, setPriceRange] = useState({ 
+    min: initialFilters.minPrice || '', 
+    max: initialFilters.maxPrice || '' 
+  });
+  const [locationTerm, setLocationTerm] = useState(initialFilters.location || '');
+  const [selectedCondition, setSelectedCondition] = useState(initialFilters.condition || '');
   const [showFilters, setShowFilters] = useState(false);
+  
   const { filteredCategories: categories } = useSelector((state) => state.categories);
+  
   // Filter out Real Estate category from general search
   const filteredCategories = categories?.filter(cat => cat.name.toLowerCase() !== 'real estate') || [];
   const selectedCategoryObj = filteredCategories?.find(cat => cat._id === selectedCategory);
   const availableSubcategories = selectedCategoryObj?.subcategories || [];
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    // Parse combined "term in location" syntax
-    let term = searchTerm;
-    let loc = locationTerm;
-    const inMatch = searchTerm.match(/(.+?)\s+in\s+(.+)/i);
-    if (inMatch) {
-      term = inMatch[1].trim();
-      loc = inMatch[2].trim();
-    }
-    // Build query params
-    let params = new URLSearchParams();
-    if (term) params.append('searchTerm', term);
-    if (selectedCategory) params.append('category', selectedCategory);
-    if (selectedSubcategory) params.append('subcategory', selectedSubcategory);
-    if (priceRange.min) params.append('minPrice', priceRange.min);
-    if (priceRange.max) params.append('maxPrice', priceRange.max);
-    if (loc) params.append('location', loc);
-    if (selectedCondition) params.append('condition', selectedCondition);
 
-    try {
-      // const res = await fetch(`${API_BASE_URL}/products?${params.toString()}`);
-      const res = await fetch(`${API_BASE_URL}/products?${params.toString()}`);
-      const data = await res.json();
-      if (data && data.products) {
-        onSearch(data.products);
-      } else {
-        onSearch([]);
-      }
-    } catch (err) {
-      onSearch([]);
-    }
+  // Update form when initialFilters change
+  useEffect(() => {
+    setSearchTerm(initialFilters.query || '');
+    setSelectedCategory(initialFilters.category || '');
+    setSelectedSubcategory(initialFilters.subcategory || '');
+    setPriceRange({ 
+      min: initialFilters.minPrice || '', 
+      max: initialFilters.maxPrice || '' 
+    });
+    setLocationTerm(initialFilters.location || '');
+    setSelectedCondition(initialFilters.condition || '');
+  }, [initialFilters]);
+
+  const buildFilters = () => {
+    const filters = {};
+    
+    if (searchTerm.trim()) filters.query = searchTerm.trim();
+    if (selectedCategory) filters.category = selectedCategory;
+    if (selectedSubcategory) filters.subcategory = selectedSubcategory;
+    if (priceRange.min) filters.minPrice = priceRange.min;
+    if (priceRange.max) filters.maxPrice = priceRange.max;
+    if (locationTerm.trim()) filters.location = locationTerm.trim();
+    if (selectedCondition) filters.condition = selectedCondition;
+    
+    return filters;
   };
-  const handleReset = async () => {
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const filters = buildFilters();
+    onSearch(filters);
+  };
+
+  const handleReset = () => {
     setSearchTerm('');
     setSelectedCategory('');
     setSelectedSubcategory('');
     setPriceRange({ min: '', max: '' });
     setLocationTerm('');
     setSelectedCondition('');
-    try {
-      const res = await fetch('${API_BASE_URL}/products');
-      const data = await res.json();
-      if (data && data.products) {
-        onSearch(data.products);
-      } else {
-        onSearch([]);
-      }
-    } catch (err) {
-      onSearch([]);
-    }
     setShowFilters(false);
+    onSearch({});
   };
 
   return (
@@ -143,24 +138,17 @@ const SearchAndFilter = ({ onSearch }) => {
                   </label>
                   <select
                     value={selectedCategory}
-                    onChange={async (e) => {
+                    onChange={(e) => {
                       const value = e.target.value;
                       setSelectedCategory(value);
                       setSelectedSubcategory('');
-                      // Fetch filtered products from backend
-                      let params = new URLSearchParams();
-                      if (value) params.append('category', value);
-                      const res = await fetch(`${API_BASE_URL}/products?${params.toString()}`);
-                      const data = await res.json();
-                      if (data && data.products) {
-                        onSearch(data.products);
-                      } else {
-                        onSearch([]);
-                      }
+                      const filters = { ...buildFilters(), category: value, subcategory: '' };
+                      onSearch(filters);
                     }}
                     className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   >
-                    <option value="">All Categories</option>                    {categories?.map((category) => (
+                    <option value="">All Categories</option>
+                    {filteredCategories?.map((category) => (
                       <option key={category._id} value={category._id}>{category.name}</option>
                     ))}
                   </select>
@@ -174,20 +162,11 @@ const SearchAndFilter = ({ onSearch }) => {
                     </label>
                     <select
                       value={selectedSubcategory}
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const sub = e.target.value;
                         setSelectedSubcategory(sub);
-                        // Fetch filtered products from backend
-                        let params = new URLSearchParams();
-                        if (selectedCategory) params.append('category', selectedCategory);
-                        if (sub) params.append('subcategory', sub);
-                        const res = await fetch(`${API_BASE_URL}/products?${params.toString()}`);
-                        const data = await res.json();
-                        if (data && data.products) {
-                          onSearch(data.products);
-                        } else {
-                          onSearch([]);
-                        }
+                        const filters = { ...buildFilters(), subcategory: sub };
+                        onSearch(filters);
                       }}
                       className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                     >
@@ -245,24 +224,11 @@ const SearchAndFilter = ({ onSearch }) => {
                   </label>
                   <select
                     value={selectedCondition}
-                    onChange={async (e) => {
+                    onChange={(e) => {
                       const condition = e.target.value;
                       setSelectedCondition(condition);
-                      // Fetch filtered products from backend
-                      let params = new URLSearchParams();
-                      if (selectedCategory) params.append('category', selectedCategory);
-                      if (selectedSubcategory) params.append('subcategory', selectedSubcategory);
-                      if (priceRange.min) params.append('minPrice', priceRange.min);
-                      if (priceRange.max) params.append('maxPrice', priceRange.max);
-                      if (locationTerm) params.append('location', locationTerm);
-                      if (condition) params.append('condition', condition);
-                      const res = await fetch(`${API_BASE_URL}/products?${params.toString()}`);
-                      const data = await res.json();
-                      if (data && data.products) {
-                        onSearch(data.products);
-                      } else {
-                        onSearch([]);
-                      }
+                      const filters = { ...buildFilters(), condition };
+                      onSearch(filters);
                     }}
                     className="w-full rounded-lg border border-gray-200 py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   >

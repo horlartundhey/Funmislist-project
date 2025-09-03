@@ -69,11 +69,23 @@ const getProducts = async (req, res) => {
     }
     // Location filter (city or address)
     if (location) {
-      query.$or = [
-        ...(query.$or || []),
+      const locationFilters = [
         { 'location.city': { $regex: location, $options: 'i' } },
         { 'location.address': { $regex: location, $options: 'i' } }
       ];
+      
+      if (query.$or) {
+        // If $or already exists, wrap everything in $and
+        query = {
+          $and: [
+            { $or: query.$or },
+            { $or: locationFilters }
+          ],
+          ...Object.fromEntries(Object.entries(query).filter(([key]) => key !== '$or'))
+        };
+      } else {
+        query.$or = locationFilters;
+      }
     }
     const products = await Product.find(query).populate('category');
     res.status(200).json({ products });
@@ -142,11 +154,23 @@ const getProductsLean = async (req, res) => {
 
     // Location filter
     if (location) {
-      query.$or = [
-        ...(query.$or || []),
+      const locationFilters = [
         { 'location.city': { $regex: location, $options: 'i' } },
         { 'location.address': { $regex: location, $options: 'i' } }
       ];
+      
+      if (query.$or) {
+        // If $or already exists, wrap everything in $and
+        query = {
+          $and: [
+            { $or: query.$or },
+            { $or: locationFilters }
+          ],
+          ...Object.fromEntries(Object.entries(query).filter(([key]) => key !== '$or'))
+        };
+      } else {
+        query.$or = locationFilters;
+      }
     }
 
     // Pagination
@@ -209,10 +233,21 @@ const searchProducts = async (req, res) => {
     }
     
     if (location) {
-      matchStage.$or = [
+      const locationFilters = [
         { 'location.city': { $regex: location, $options: 'i' } },
         { 'location.address': { $regex: location, $options: 'i' } }
       ];
+      
+      if (matchStage.$or) {
+        // If $or already exists, wrap everything in $and
+        matchStage.$and = [
+          { $or: matchStage.$or },
+          { $or: locationFilters }
+        ];
+        delete matchStage.$or;
+      } else {
+        matchStage.$or = locationFilters;
+      }
     }
 
     pipeline.push({ $match: matchStage });
