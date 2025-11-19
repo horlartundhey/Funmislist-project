@@ -112,9 +112,8 @@ const dbMiddleware = (req, res, next) => {
 // Middleware
 app.use(cors({
   origin: [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://localhost:5174',
+    'https://funmislist.com',
+    'http://localhost:5173',    
     'https://funmislist-project.vercel.app',
     'https://funmislist-project-sgb3.vercel.app',
     process.env.FRONTEND_URL
