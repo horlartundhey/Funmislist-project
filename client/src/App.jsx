@@ -21,6 +21,15 @@ import PropertyDetailsPage from './pages/PropertyDetailsPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import IconsOverlay from './components/home/IconsOverlay';
+import ScrollToTop from './components/ScrollToTop';
+// Legal/Compliance Pages
+import AboutPage from './pages/legal/AboutPage';
+import ContactPage from './pages/legal/ContactPage';
+import PrivacyPolicyPage from './pages/legal/PrivacyPolicyPage';
+import RefundPolicyPage from './pages/legal/RefundPolicyPage';
+import ShippingPolicyPage from './pages/legal/ShippingPolicyPage';
+import FaqPage from './pages/legal/FaqPage';
+import TermsConditionsPage from './pages/legal/TermsConditionsPage';
 import './App.css';
 
 // Layout component runs inside Router so useLocation works
@@ -31,6 +40,7 @@ function Layout() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <ScrollToTop />
       {!isAdmin && <IconsOverlay />} 
       {!isAdmin && <Header />}
       <main className={`flex-grow ${!isHome && !isAdmin ? 'pt-16' : ''}`}> {/* space for fixed header on subpages */}
@@ -74,6 +84,14 @@ function Layout() {
           />
           <Route path="/properties" element={<PropertyPage />} />
           <Route path="/properties/:id" element={<PropertyDetailsPage />} />
+          {/* Legal/Compliance Pages */}
+          <Route path="/legal/about" element={<AboutPage />} />
+          <Route path="/legal/contact" element={<ContactPage />} />
+          <Route path="/legal/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/legal/refund" element={<RefundPolicyPage />} />
+          <Route path="/legal/shipping" element={<ShippingPolicyPage />} />
+          <Route path="/legal/faq" element={<FaqPage />} />
+          <Route path="/legal/terms" element={<TermsConditionsPage />} />
         </Routes>
       </main>
       {!isAdmin && <Footer />}

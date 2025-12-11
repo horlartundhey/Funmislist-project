@@ -14,7 +14,7 @@
 // client/src/config/api.js
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
   (import.meta.env.MODE === 'production'
-    ? 'https://funmislist.com/api'
+    ? 'https://funmislist-project.vercel.app/api'
     : 'http://localhost:5000/api'
   );
 // For temporary manual override during development - uncomment line below to force local server
