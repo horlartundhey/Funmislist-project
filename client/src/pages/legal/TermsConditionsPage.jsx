@@ -6,7 +6,7 @@ function TermsConditionsPage() {
       <h1 className="text-4xl font-bold mb-6 text-gray-800">Terms and Conditions</h1>
       
       <p className="text-gray-600 mb-8 leading-relaxed">
-        <strong>Last Updated:</strong> [DATE]
+        <strong>Last Updated:</strong> April 18, 2026
       </p>
 
       <p className="text-gray-600 mb-6 leading-relaxed">
@@ -285,7 +285,7 @@ function TermsConditionsPage() {
         <p className="text-gray-600 mb-4 leading-relaxed">
           These Terms shall be governed by and construed in accordance with the laws of the Federal 
           Republic of Nigeria. Any disputes arising from these Terms or your use of the Platform 
-          shall be subject to the exclusive jurisdiction of the courts in [YOUR JURISDICTION].
+          shall be subject to the exclusive jurisdiction of the courts in Nigeria.
         </p>
       </section>
 
@@ -322,7 +322,7 @@ function TermsConditionsPage() {
         </p>
         <div className="bg-gray-50 p-4 rounded-lg">
           <p className="text-gray-600 mb-2">
-            <strong>Company Name:</strong> [YOUR COMPANY LEGAL NAME]
+            <strong>Company Name:</strong> Funmislist Nigerian Limited
           </p>
           <p className="text-gray-600 mb-2">
             <strong>Email:</strong>{' '}
@@ -331,10 +331,10 @@ function TermsConditionsPage() {
             </a>
           </p>
           <p className="text-gray-600 mb-2">
-            <strong>Address:</strong> [YOUR BUSINESS ADDRESS]
+            <strong>Address:</strong> 1 Thomas Olaniyan Street, Anthony Maryland, Lagos, Nigeria
           </p>
           <p className="text-gray-600">
-            <strong>Phone:</strong> +234 XXX XXX XXXX
+            <strong>Phone:</strong> +234 802 393 3197
           </p>
         </div>
       </section>

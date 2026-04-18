@@ -9,7 +9,7 @@ function Footer() {
           <div>
             <h3 className="text-lg font-semibold mb-4">Funmislist</h3>
             <p className="text-gray-400 text-sm">
-              Your trusted marketplace for buying, selling, and discovering properties across Nigeria.
+              Your trusted destination for quality products and real estate listings across Nigeria.
             </p>
           </div>
 
@@ -82,8 +82,8 @@ function Footer() {
                 </a>
               </li>
               <li>
-                <a href="tel:+234XXXXXXXXXX" className="hover:text-white transition-colors">
-                  +234 XXX XXX XXXX
+                <a href="tel:+2348023933197" className="hover:text-white transition-colors">
+                  +234 802 393 3197
                 </a>
               </li>
               <li>Nigeria</li>

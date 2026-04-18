@@ -6,7 +6,7 @@ function ShippingPolicyPage() {
       <h1 className="text-4xl font-bold mb-6 text-gray-800">Shipping & Delivery Policy</h1>
       
       <p className="text-gray-600 mb-8 leading-relaxed">
-        <strong>Last Updated:</strong> [DATE]
+        <strong>Last Updated:</strong> April 18, 2026
       </p>
 
       <p className="text-gray-600 mb-6 leading-relaxed">
@@ -17,10 +17,10 @@ function ShippingPolicyPage() {
       <section className="mb-8">
         <h2 className="text-2xl font-semibold mb-4 text-gray-700">1. Overview</h2>
         <p className="text-gray-600 mb-4 leading-relaxed">
-          Funmislist operates as a marketplace connecting buyers and sellers. Our platform offers:
+          Funmislist lists and sells products and services directly to customers in Nigeria. Our platform covers:
         </p>
         <ul className="list-disc list-inside text-gray-600 space-y-2 mb-4 ml-4">
-          <li><strong>Physical Products:</strong> Items shipped from sellers to buyers</li>
+          <li><strong>Physical Products:</strong> Items delivered to buyers across Nigeria</li>
           <li><strong>Digital Services:</strong> Property inspection appointments (no physical shipping)</li>
         </ul>
       </section>
@@ -61,18 +61,18 @@ function ShippingPolicyPage() {
             <tbody>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Zone 1 (Major Cities)</td>
-                <td className="border border-gray-300 px-4 py-2">[2-4 business days]</td>
-                <td className="border border-gray-300 px-4 py-2">[1-2 business days]</td>
+                <td className="border border-gray-300 px-4 py-2">2–4 business days</td>
+                <td className="border border-gray-300 px-4 py-2">1–2 business days</td>
               </tr>
               <tr className="bg-gray-50">
                 <td className="border border-gray-300 px-4 py-2">Zone 2 (Regional Centers)</td>
-                <td className="border border-gray-300 px-4 py-2">[4-7 business days]</td>
-                <td className="border border-gray-300 px-4 py-2">[2-4 business days]</td>
+                <td className="border border-gray-300 px-4 py-2">4–7 business days</td>
+                <td className="border border-gray-300 px-4 py-2">2–4 business days</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Zone 3 (Remote Areas)</td>
-                <td className="border border-gray-300 px-4 py-2">[7-14 business days]</td>
-                <td className="border border-gray-300 px-4 py-2">[4-7 business days]</td>
+                <td className="border border-gray-300 px-4 py-2">7–14 business days</td>
+                <td className="border border-gray-300 px-4 py-2">4–7 business days</td>
               </tr>
             </tbody>
           </table>
@@ -103,7 +103,7 @@ function ShippingPolicyPage() {
           After payment confirmation:
         </p>
         <ul className="list-disc list-inside text-gray-600 space-y-2 mb-4 ml-4">
-          <li>Sellers have <strong>[1-3 business days]</strong> to process and ship orders</li>
+          <li>Orders are processed and shipped within <strong>1–3 business days</strong> of payment confirmation</li>
           <li>You will receive a shipping confirmation with tracking details</li>
           <li>Processing times may be longer for custom or made-to-order items</li>
         </ul>
@@ -136,7 +136,7 @@ function ShippingPolicyPage() {
             If delivery cannot be completed:
           </p>
           <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-            <li>Courier will attempt delivery <strong>[X times]</strong></li>
+            <li>Courier will attempt delivery <strong>up to 3 times</strong></li>
             <li>You'll be notified via phone, email, and SMS</li>
             <li>After failed attempts, package may be returned to seller</li>
             <li>Additional fees may apply for re-delivery</li>
@@ -271,7 +271,7 @@ function ShippingPolicyPage() {
             </a>
           </p>
           <p className="text-gray-600 mb-2">
-            <strong>Phone:</strong> +234 XXX XXX XXXX
+            <strong>Phone:</strong> +234 802 393 3197
           </p>
           <p className="text-gray-600">
             <strong>Business Hours:</strong> Monday - Friday, 9:00 AM - 6:00 PM WAT

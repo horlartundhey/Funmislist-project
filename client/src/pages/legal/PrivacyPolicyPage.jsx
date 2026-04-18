@@ -6,7 +6,7 @@ function PrivacyPolicyPage() {
       <h1 className="text-4xl font-bold mb-6 text-gray-800">Privacy Policy</h1>
       
       <p className="text-gray-600 mb-8 leading-relaxed">
-        <strong>Last Updated:</strong> [DATE]
+        <strong>Last Updated:</strong> April 18, 2026
       </p>
 
       <p className="text-gray-600 mb-6 leading-relaxed">
@@ -253,10 +253,10 @@ function PrivacyPolicyPage() {
             </a>
           </p>
           <p className="text-gray-600 mb-2">
-            <strong>Address:</strong> [YOUR BUSINESS ADDRESS]
+            <strong>Address:</strong> 1 Thomas Olaniyan Street, Anthony Maryland, Lagos, Nigeria
           </p>
           <p className="text-gray-600">
-            <strong>Phone:</strong> +234 XXX XXX XXXX
+            <strong>Phone:</strong> +234 802 393 3197
           </p>
         </div>
       </section>

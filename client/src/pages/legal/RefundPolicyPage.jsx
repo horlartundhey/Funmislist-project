@@ -6,7 +6,7 @@ function RefundPolicyPage() {
       <h1 className="text-4xl font-bold mb-6 text-gray-800">Refund Policy</h1>
       
       <p className="text-gray-600 mb-8 leading-relaxed">
-        <strong>Last Updated:</strong> [DATE]
+        <strong>Last Updated:</strong> April 18, 2026
       </p>
 
       <p className="text-gray-600 mb-6 leading-relaxed">
@@ -48,14 +48,15 @@ function RefundPolicyPage() {
           To request a refund for a product purchase:
         </p>
         <ol className="list-decimal list-inside text-gray-600 space-y-2 mb-4 ml-4">
-          <li>Contact the seller directly through the platform within <strong>[X days]</strong> of delivery</li>
-          <li>If unresolved, escalate to Funmislist customer support at{' '}
+          <li>Contact Funmislist customer support within <strong>7 days</strong> of delivery</li>
+          <li>Email{' '}
             <a href="mailto:support@funmislist.com" className="text-blue-600 hover:underline">
               support@funmislist.com
             </a>
+            {' '}with your order details
           </li>
           <li>Provide order details, photos (if applicable), and reason for refund request</li>
-          <li>Allow up to <strong>[X business days]</strong> for review and resolution</li>
+          <li>Allow up to <strong>5 business days</strong> for review and resolution</li>
         </ol>
 
         <h3 className="text-xl font-semibold mb-3 text-gray-600">2.3 Refund Timeline</h3>
@@ -63,9 +64,9 @@ function RefundPolicyPage() {
           Once a refund is approved:
         </p>
         <ul className="list-disc list-inside text-gray-600 space-y-2 mb-4 ml-4">
-          <li>Refunds are processed within <strong>[X business days]</strong></li>
+          <li>Refunds are processed within <strong>3–5 business days</strong></li>
           <li>Funds will be returned to your original payment method</li>
-          <li>Bank processing time may take an additional <strong>[X-X business days]</strong></li>
+          <li>Bank processing time may take an additional <strong>3–7 business days</strong></li>
         </ul>
 
         <h3 className="text-xl font-semibold mb-3 text-gray-600">2.4 Conditions for Product Returns</h3>
@@ -113,7 +114,7 @@ function RefundPolicyPage() {
           <li>The property owner cancels the appointment</li>
           <li>The property is no longer available for viewing</li>
           <li>The property was misrepresented in the listing</li>
-          <li>You cancel at least <strong>[X hours/days]</strong> before the scheduled appointment</li>
+          <li>You cancel at least <strong>48 hours</strong> before the scheduled appointment</li>
           <li>There are safety or accessibility issues that prevent the inspection</li>
         </ul>
 
@@ -122,15 +123,15 @@ function RefundPolicyPage() {
           If you need to cancel a property inspection appointment:
         </p>
         <ul className="list-disc list-inside text-gray-600 space-y-2 mb-4 ml-4">
-          <li>Cancel at least <strong>[X hours/days]</strong> in advance: <strong>[X%]</strong> refund</li>
-          <li>Cancel less than <strong>[X hours/days]</strong> in advance: <strong>No refund</strong></li>
+          <li>Cancel at least <strong>48 hours</strong> in advance: <strong>100%</strong> refund</li>
+          <li>Cancel less than <strong>48 hours</strong> in advance: <strong>No refund</strong></li>
           <li>No-show without cancellation: <strong>No refund</strong></li>
         </ul>
 
         <h3 className="text-xl font-semibold mb-3 text-gray-600">3.4 Rescheduling</h3>
         <p className="text-gray-600 mb-4 leading-relaxed">
           You may reschedule your property inspection appointment <strong>once</strong> without penalty, 
-          provided you give at least <strong>[X hours/days]</strong> notice. Additional rescheduling 
+          provided you give at least <strong>48 hours</strong> notice. Additional rescheduling 
           requests may incur fees.
         </p>
       </section>
@@ -169,7 +170,7 @@ function RefundPolicyPage() {
           <li>Funmislist will mediate the dispute and review evidence from both parties</li>
           <li>We may request additional documentation or photos</li>
           <li>Our decision will be final and binding</li>
-          <li>Resolution typically takes <strong>[X business days]</strong></li>
+          <li>Resolution typically takes <strong>5–7 business days</strong></li>
         </ol>
       </section>
 
@@ -179,9 +180,9 @@ function RefundPolicyPage() {
           All refunds will be issued to the original payment method used for the transaction:
         </p>
         <ul className="list-disc list-inside text-gray-600 space-y-2 mb-4 ml-4">
-          <li>Credit/Debit card refunds: <strong>[X-X business days]</strong></li>
-          <li>Bank account refunds: <strong>[X-X business days]</strong></li>
-          <li>Mobile money refunds: <strong>[X-X business days]</strong></li>
+          <li>Credit/Debit card refunds: <strong>3–7 business days</strong></li>
+          <li>Bank account refunds: <strong>3–7 business days</strong></li>
+          <li>Mobile money refunds: <strong>1–3 business days</strong></li>
         </ul>
         <p className="text-gray-600 mb-4 leading-relaxed">
           Alternative refund methods (e.g., platform credit) may be offered at our discretion.
@@ -196,7 +197,7 @@ function RefundPolicyPage() {
         <ul className="list-disc list-inside text-gray-600 space-y-2 mb-4 ml-4">
           <li>Provide accurate product descriptions and images</li>
           <li>Honor legitimate refund requests</li>
-          <li>Respond to buyer inquiries within <strong>[X hours/days]</strong></li>
+          <li>Respond to buyer inquiries within <strong>48 hours</strong></li>
           <li>Process approved refunds promptly</li>
         </ul>
         <p className="text-gray-600 mb-4 leading-relaxed">
@@ -217,7 +218,7 @@ function RefundPolicyPage() {
             </a>
           </p>
           <p className="text-gray-600 mb-2">
-            <strong>Phone:</strong> +234 XXX XXX XXXX
+            <strong>Phone:</strong> +234 802 393 3197
           </p>
           <p className="text-gray-600">
             <strong>Business Hours:</strong> Monday - Friday, 9:00 AM - 6:00 PM WAT

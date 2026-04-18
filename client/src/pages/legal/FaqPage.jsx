@@ -89,7 +89,7 @@ function FaqPage() {
     {
       category: "Property Services",
       question: "Can I reschedule a property inspection?",
-      answer: "Yes, you can reschedule your inspection appointment once without penalty, provided you give at least [X hours/days] notice. Contact the property owner or our support team to arrange a new time. Additional rescheduling may incur fees."
+      answer: "Yes, you can reschedule your inspection appointment once without penalty, provided you give at least 48 hours notice. Contact our support team to arrange a new time. Additional rescheduling may incur fees."
     },
     {
       category: "Property Services",
@@ -128,12 +128,12 @@ function FaqPage() {
     {
       category: "Disputes & Refunds",
       question: "How long do refunds take?",
-      answer: "Once a refund is approved, it typically takes [X business days] to process. Funds are returned to your original payment method. Bank processing time may take an additional [X-X business days] depending on your financial institution."
+      answer: "Once a refund is approved, it typically takes 3–5 business days to process. Funds are returned to your original payment method. Bank processing time may take an additional 3–7 business days depending on your financial institution."
     },
     {
       category: "Disputes & Refunds",
       question: "What if I have a dispute with a seller or buyer?",
-      answer: "If you have a dispute, first try to resolve it directly through the platform messaging system. If unsuccessful, contact Funmislist support. We'll mediate the dispute, review evidence from both parties, and make a fair decision. Our resolution process typically takes [X business days]."
+      answer: "If you have a dispute, first contact Funmislist support at support@funmislist.com. We'll review evidence from both parties and make a fair decision. Our resolution process typically takes 5–7 business days."
     },
     {
       category: "Disputes & Refunds",
@@ -167,7 +167,7 @@ function FaqPage() {
     {
       category: "Customer Support",
       question: "How do I contact customer support?",
-      answer: "You can reach our customer support team via email at support@funmislist.com, by phone at +234 XXX XXX XXXX (Monday-Friday, 9 AM - 6 PM WAT), or through the contact form on our Contact page. We typically respond within 24-48 hours."
+      answer: "You can reach our customer support team via email at support@funmislist.com, by phone at +234 802 393 3197 (Monday-Friday, 9 AM - 6 PM WAT), or through the contact form on our Contact page. We typically respond within 24-48 hours."
     },
     {
       category: "Customer Support",
@@ -245,8 +245,8 @@ function FaqPage() {
           </p>
           <p className="text-gray-600">
             <strong>Phone:</strong>{' '}
-            <a href="tel:+234XXXXXXXXXX" className="text-blue-600 hover:underline">
-              +234 XXX XXX XXXX
+            <a href="tel:+2348023933197" className="text-blue-600 hover:underline">
+              +234 802 393 3197
             </a>
           </p>
           <p className="text-gray-600">

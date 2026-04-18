@@ -19,9 +19,9 @@ function ContactPage() {
             <div>
               <h3 className="text-xl font-semibold mb-2 text-gray-800">Business Address</h3>
               <p className="text-gray-600 leading-relaxed">
-                [YOUR STREET ADDRESS]<br />
-                [YOUR CITY, STATE]<br />
-                [YOUR POSTAL/ZIP CODE]<br />
+                1 Thomas Olaniyan Street<br />
+                Anthony Maryland, Lagos<br />
+                101233<br />
                 Nigeria
               </p>
             </div>
@@ -35,8 +35,8 @@ function ContactPage() {
             <div>
               <h3 className="text-xl font-semibold mb-2 text-gray-800">Phone Number</h3>
               <p className="text-gray-600">
-                <a href="tel:+234XXXXXXXXXX" className="hover:text-blue-600">
-                  +234 XXX XXX XXXX
+                <a href="tel:+2348023933197" className="hover:text-blue-600">
+                  +234 802 393 3197
                 </a>
               </p>
               <p className="text-sm text-gray-500 mt-2">
@@ -124,7 +124,7 @@ function ContactPage() {
                 id="phone"
                 name="phone"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="+234 XXX XXX XXXX"
+                placeholder="+234 802 393 3197"
               />
             </div>
 
